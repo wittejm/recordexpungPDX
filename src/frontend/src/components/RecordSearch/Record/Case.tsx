@@ -39,7 +39,7 @@ export default class Cases extends React.Component<Props> {
               target="_blank"
               className="link bb hover-blue"
             >
-              {case_number}
+              012345678
             </a>
           </div>
           <div className="fl ph3 pv1">
@@ -56,11 +56,11 @@ export default class Cases extends React.Component<Props> {
           </div>
           <div className="fl ph3 pv1">
             <div className="fw7">Name </div>
-            {name}
+            [LAST, FIRST MIDDLE]
           </div>
           <div className="fl ph3 pv1">
             <div className="fw7">DOB </div>
-            {birth_year}
+            1900
           </div>
         </div>
         {balance_due > 0 && !allIneligible ? (
