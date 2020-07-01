@@ -46,7 +46,7 @@ export default class Field extends React.Component<Props, State> {
         <input
           value={this.props.content}
           id={this.props.name}
-          type="text"
+          type="password"
           className={sharedInputMarkup + this.props.inputMarkup}
           required={this.props.required}
           aria-invalid={this.state.hasInput}
