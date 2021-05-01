@@ -4,7 +4,7 @@
   "private": true,
   "proxy": "http://expungeservice:5000",
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^5.11.2",
+    "@fortawesome/fontawesome-free": "^5.15.3",
     "@reach/disclosure": "^0.10.5",
     "@reduxjs/toolkit": "^1.2.1",
     "@types/jest": "24.0.23",
