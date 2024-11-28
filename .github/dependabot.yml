@@ -1,0 +1,57 @@
+version: 2
+updates:
+- package-ecosystem: pip
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "10:00"
+  open-pull-requests-limit: 10
+  labels:
+  - backend
+  - dependencies
+- package-ecosystem: npm
+  directory: "/src/frontend"
+  schedule:
+    interval: monthly
+    time: "10:00"
+  open-pull-requests-limit: 10
+  labels:
+  - frontend
+  - dependencies
+  ignore:
+  - dependency-name: "@types/node"
+    versions:
+    - 14.14.17
+    - 14.14.22
+  - dependency-name: "@types/lodash"
+    versions:
+    - 4.14.166
+  - dependency-name: "@types/react-redux"
+    versions:
+    - 7.1.14
+  - dependency-name: "@types/jest"
+    versions:
+    - 26.0.19
+  - dependency-name: "@fortawesome/fontawesome-free"
+    versions:
+    - 5.15.1
+  - dependency-name: lodash
+    versions:
+    - 4.17.20
+  - dependency-name: elliptic
+    versions:
+    - 6.5.3
+- package-ecosystem: docker
+  directory: "/src/backend"
+  schedule:
+    interval: daily
+    time: "10:00"
+  open-pull-requests-limit: 10
+  labels:
+  - dependencies
+  ignore:
+  - dependency-name: python
+    versions:
+    - 3.9.1.pre.alpine
+    - 3.9.2.pre.alpine
+    - 3.9.3.pre.alpine
