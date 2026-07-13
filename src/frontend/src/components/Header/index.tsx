@@ -73,6 +73,15 @@ export default class Header extends React.Component<{}, HeaderState> {
             </Link>
             <Link
               className="link navy hover-blue f5 fw6 pv3 pv2-l ph3-l mr4-l nowrap"
+              to="https://evictions-r7kxt2ia3q-uw.a.run.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={this.toggleMenu}
+            >
+              Eviction Expungement
+            </Link>
+            <Link
+              className="link navy hover-blue f5 fw6 pv3 pv2-l ph3-l mr4-l nowrap"
               to="/manual"
               onClick={this.toggleMenu}
             >
