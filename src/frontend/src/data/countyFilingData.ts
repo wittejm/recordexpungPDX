@@ -29,6 +29,7 @@ export const countyFilingData: Record<string, CountyFilingInfo> = {
       "Even if the participant doesn't file, they can still be re-indicted.",
       "The Statute of Limitations pauses while a case is occurring.",
       "Filing is ultimately the participant's choice.",
+      'Violation Treatment ("Viol Treatment") may be for traffic citations. These are marked as Possibly Eligible and will not print by default. Examine the court case to determine eligibility. If determined not to be traffic-related, Enable Editing and mark as Eligible.',
     ],
   },
   Umatilla: {
