@@ -30,7 +30,18 @@ export const oregonCounties: County[] = [
   { name: 'Josephine', posts: [] },
   { name: 'Klamath', posts: [] },
   { name: 'Lake', posts: [] },
-  { name: 'Lane', posts: [] },
+  {
+    name: 'Lane',
+    posts: [
+      {
+        id: 'lane-1',
+        title: 'RecordSponge Changes Lives',
+        preview:
+          'We have had success using RecordSponge at Community Supported Shelters in Eugene, OR. It has allowed us to easily expunge criminal history of staff and clients, directly contributing to positive housing and employment outcomes.',
+        name: 'Kai Burley',
+      },
+    ],
+  },
   { name: 'Lincoln', posts: [] },
   { name: 'Linn', posts: [] },
   { name: 'Malheur', posts: [] },
