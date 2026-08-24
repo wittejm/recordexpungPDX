@@ -7,6 +7,10 @@ import {
 } from "../../data/countyFilingData";
 import setupPage from "../../service/setupPage";
 
+function countyEntryCount(county: County): number {
+  return county.posts.length + (countyFilingData[county.name]?.notes.length ?? 0);
+}
+
 function CountySidebar({
   selectedCounty,
   hoveredCounty,
@@ -69,7 +73,7 @@ function CountySidebar({
             onMouseLeave={() => onHoverCounty(null, "list")}
           >
             {county.name}{" "}
-            <span className={selectedCounty === county.name ? "white-70" : "gray"}>{" "}({county.posts.length})</span>
+            <span className={selectedCounty === county.name ? "white-70" : "gray"}>{" "}({countyEntryCount(county)})</span>
           </li>
         ))}
       </ul>

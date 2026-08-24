@@ -25,27 +25,16 @@ For further detail, see 137.225(6)(a)"""
         "163427",  # Sexual Abuse I
         "163432",  # Online Sexual Corruption of a Child II
         "163433",  # Online Sexual Corruption of a Child I
-        "163452",  # Custodial Sexual Misconduct in the First Degree
-        "163454",  # Custodial sexual misconduct in the second degree
         "163465",  # Felony Public Indecency
         "163467",  # Private indecency
-        "163472",  # Unlawful Dissemination of Initimate Image
-        "163476",  # Unlawfully being in a location where children regularly congregate
-        "163479",  # Unlawful Contact with a Child
         "163670",  # Using Child In Display of Sexual Conduct
         "163684",  # Encouraging Child Sex Abuse I
         "163686",  # Encouraging Child Sex Abuse II
         "163687",  # Encouraging child sexual abuse in the third degree
         "163688",  # Possession of Material Depicting Sexually Explicit Conduct of Child I
-        "163689",  # Possession of Material Depicting Sexually Explicit Conduct of Child II
-        "163693",  # Failure to report Child Pornography
         "167012",  # Promoting prostitution
         "167017",  # Compelling prostitution
         "167057",  # Luring a minor
-        "167062",  # Sadomasochistic abuse or sexual conduct in live show
-        "167075",  # Exhibiting an obscene performance to a minor
-        "167080",  # Displaying obscene materials to minors
-        "167090",  # Publicly displaying nudity or sex for advertising purposes
     ]
 
     # Romeo and Juliet exception; If a person is convicted of one of the following, and follows certain other
