@@ -76,10 +76,10 @@ A person felony that is below a class B felony is not considered under this subs
         # "163427",  # [Sex Crime] Sexual Abuse I;
         # "163432",  # [Sex Crime] Online Sexual Corruption of a Child II;
         # "163433",  # [Sex Crime] Online Sexual Corruption of a Child I;
-        # "163452",  # [Sex Crime] Custodial Sexual Misconduct in the First Degree;
+        "163452",  # Custodial Sexual Misconduct in the First Degree;
         # "163465",  # [Sex Crime] Felony Public Indecency;
-        # "163472",  # [Sex Crime] Unlawful Dissemination of Intimate Image;
-        # "163479",  # [Sex Crime] Unlawful Contact with a Child;
+        "163472",  # Unlawful Dissemination of Intimate Image;
+        "163479",  # Unlawful Contact with a Child;
         "163525",  # Incest;
         "163535",  # Abandon Child;
         "163537",  # Buying/Selling Custody of a Minor;
@@ -88,7 +88,7 @@ A person felony that is below a class B felony is not considered under this subs
         # "163684",  # [Sex Crime] Encouraging Child Sex Abuse I;
         # "163686",  # [Sex Crime] Encouraging Child Sex Abuse II;
         # "163688",  # [Sex Crime] Possession of Material Depicting Sexually Explicit Conduct of Child I;
-        # "163689",  # [Sex Crime] Possession of Material Depicting Sexually Explicit Conduct of Child II;
+        "163689",  # Possession of Material Depicting Sexually Explicit Conduct of Child II;
         "163701",  # Invasion of Personal Privacy I;
         "163732",  # Stalking;
         "163750",  # Violation of Court's Stalking Order;
