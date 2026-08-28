@@ -31,12 +31,11 @@ class Expunger:
         analyzable_record = Expunger._without_skippable_charges(record)
         ambiguous_charge_id_to_time_eligibility = {}
         cases = analyzable_record.cases
-        for charge in analyzable_record.charges:
+        charges = analyzable_record.charges
+        for charge in charges:
             eligibility_dates: List[Tuple[date, str]] = []
 
-            other_charges = [
-                c for c in analyzable_record.charges if c.id != charge.id and c.edit_status != EditStatus.DELETE
-            ]
+            other_charges = [c for c in charges if c.id != charge.id and c.edit_status != EditStatus.DELETE]
 
             other_blocking_charges = [c for c in other_charges if c.charge_type.blocks_other_charges]
 
