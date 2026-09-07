@@ -14,8 +14,10 @@ given.
 | --- | --- |
 | Scope granularity | Three scopes: record, case, charge |
 | Persistence | Redux only, cleared on reload and by Start Over; nothing on disk |
-| Global questions | One panel at the top of the view; charges show a single collapsed status row |
-| Decided pathways | Remaining questions fold behind a one-line reason |
+| Global questions | One panel at the top of the view; charge panels list only their own criteria |
+| Gates | A pathway's defining question is asked first; the rest appear only once it is met |
+| Decided pathways | Fold behind a one-line reason naming the answer that decided them |
+| Answered questions | Never hidden, however moot they become; they are the way back |
 | Unanswerable criteria | Excluded from status; rendered as next-step instructions |
 | Existing machinery | Untouched. No new request path, nothing in the summary PDF |
 
@@ -62,9 +64,25 @@ attaches to a case. It only matters on a multi-charge case.
 
 ### The shape of the common case
 
-"Is the applicant currently incarcerated?" gates all of Excessive Sentencing. For a client
-sitting at a clinic table the answer is No, which rules out that pathway and folds away
-nine of the fourteen questions. One answer collapses most of the form.
+"Is the applicant currently incarcerated?" gates all of Excessive Sentencing, and "has the
+applicant fully completed the sentence on this case?" gates Collateral Consequences. Each
+gate is asked first, and the pathway's other questions appear only once the gate is met. For
+a client sitting at a clinic table the first answer is No, and eight questions that would
+have been irrelevant are never shown. The form grows as the client's circumstances come out,
+rather than opening at full length and shrinking as they are ruled out.
+
+A gate is declared on the criterion (`is_gate`), so the rules sheet can state it and
+another county can name its own. It is a single Question criterion per pathway and never
+one of several alternatives; a test pins that shape.
+
+An open main-criterion question on a charge holds every pathway question on that charge the
+same way, since a conviction that was not sentenced as a felony is out under every pathway.
+Nothing declares this; main criteria gate every pathway by definition.
+
+While a question is held, the panel it belongs to says how many more follow and which answer
+brings them, and a charge row names the question it is waiting on in place of its controls.
+A question that has been answered is never held or folded, however moot it becomes: it is
+the record of a decision and the only way back from it.
 
 ## What "Possibly SB-819 Eligible" means
 
@@ -141,8 +159,9 @@ The backend needs three additive metadata fields and no logic change:
   in TypeScript would drift the first time one is reworded.
 - `disjunction_group` in the serializer. Without it the frontend cannot collapse the
   Excessive Sentencing alternatives and would read one failed alternative as fatal.
-- `question_key`, a stable identifier that answers key off, so rewording a question does not
-  silently discard the answer to it.
+- `key`, a stable identifier that answers key off, so rewording a question does not silently
+  discard the answer to it.
+- `is_gate`, marking the one question per pathway that the pathway's other questions wait on.
 
 ### Keeping the two resolvers honest
 
@@ -156,21 +175,27 @@ implementations fails a test rather than reaching a volunteer.
 
 ## Interface
 
-Three collapses, all built on the existing `useDisclosure` hook and `DisclosureIcon`.
+The collapses are built on the existing `useDisclosure` hook and `DisclosureIcon`, with the header text left selectable so a criterion's wording can be copied without toggling it.
 
 **Main criteria** collapse to a single line when all four pass. A failed or unresolved main
 criterion keeps the section open, since it is either the disqualifying reason or an open
 question.
 
-**Global criteria on a charge** collapse to one status row rather than five entries: a
-status dot, "Applicant circumstances", and the resolved effect, such as "rules out
-Excessive Sentencing". Green when every global answer is in and none disqualify this
-charge, red when an answer disqualifies a pathway, purple when any is unanswered. The dot
-reflects each criterion's resolved contribution, so a global criterion failing inside a
-disjunction group does not turn the row red unless the whole group fails. Expanding gives
-one compact line per criterion, each linking to the panel where it is answered.
+**Record-scope criteria** are not listed on a charge at all. They are answered once in the
+applicant panel, and a charge's pathway shows only the criteria that concern that case or
+that conviction.
 
-**A decided pathway** folds its remaining questions behind its one-line reason.
+**A held question** on a charge keeps its criterion row, with the name, the explanation, and
+an unresolved marker, and in place of its controls says which question it is waiting on and
+which answer brings it.
+
+**A decided pathway** folds away behind a one-line reason: the question and the answer that
+decided it, or the record's own explanation. Its questions are still there behind the
+disclosure, and one that has been answered is still answerable.
+
+**Questions nothing turns on any more**, because a pathway was ruled out by some answer other
+than its gate, are set aside behind a disclosure in their panel rather than dropped. The gate
+itself never sets anything aside, because nothing behind it was shown.
 
 **A charge that clears** carries a next-steps list in place of the three unanswerable
 criteria: the personal statement, the letters of recommendation, and the disciplinary
@@ -183,9 +208,10 @@ innocence claim is investigable.
 
 | File | Change |
 | --- | --- |
-| `models/sb819.py` | `SB819Scope` enum; `scope` and `question_key` on `SB819Criterion` |
-| `sb819_criteria/multnomah.py` | A scope and key on each of the seventeen criteria |
-| `serializer.py` | Emit `scope`, `question_key`, `disjunction_group` |
+| `models/sb819.py` | `SB819Scope` enum; `scope`, `key`, and `is_gate` on `SB819Criterion` |
+| `sb819_criteria/multnomah.py` | A scope and key on each of the twenty criteria; a gate on two |
+| `serializer.py` | Emit `scope`, `key`, `disjunction_group`, `is_gate` |
+| `sb819_criteria/logic_sheet.py` | Each pathway's rule states its gate |
 
 ### Frontend
 
@@ -194,13 +220,17 @@ innocence claim is investigable.
 | `redux/sb819AnswersSlice.ts` | Answers keyed by scope, target, and question key |
 | `SB819/resolveAnalysis.ts` | The pure resolver |
 | `SB819/SB819Question.tsx` | A Yes/No control with a clear action |
-| `SB819/SB819GlobalPanel.tsx` | The five record-scope questions |
-| `SB819/SB819CaseQuestions.tsx` | The two case-scope questions |
-| `SB819/SB819Criteria.tsx` | The three collapses |
+| `SB819/questionCollection.ts` | Collects a scope's questions; decides which are held, asked, or set aside |
+| `SB819/SB819GlobalPanel.tsx` | The record-scope questions |
+| `SB819/SB819CaseQuestions.tsx` | The case-scope questions |
+| `SB819/SB819Held.tsx` | The line naming what a held question waits on |
+| `SB819/SB819SetAside.tsx` | The disclosure holding questions nothing turns on |
+| `SB819/SB819Criteria.tsx` | The criteria rows and the pathway and main-criteria collapses |
+| `SB819/SB819Case.tsx`, `SB819Charge.tsx` | The view's own case and charge frames |
 | `SB819/index.tsx`, `SB819Summary.tsx`, `SB819ChargesList.tsx` | Read the resolved analysis |
-| `Record/Case.tsx` | A `renderSB819CaseSection` prop mirroring `renderSB819ChargeSection` |
 
-`Case.tsx` is the only existing frontend file this feature edits.
+The record view's own `Case`, `Cases`, `Charge` and `Charges` components are untouched; the
+SB-819 view renders its own.
 
 ## Testing
 
@@ -208,8 +238,10 @@ innocence claim is investigable.
   case-scope criteria are asserted by name.
 - Frontend: the resolver against the shared fixture table; a global answer propagating to
   every charge; a case answer reaching both charges on one case and neither charge on
-  another; a pathway collapsing when decided; the main criteria collapsing only when all
-  four pass; answers clearing on Start Over.
+  another; the applicant panel opening with the gate alone and growing on Yes; a gate
+  answered No revealing nothing and folding nothing; a held charge question naming its gate;
+  an open main criterion holding both gates; a pathway collapsing when decided; the main
+  criteria collapsing only when all four pass; answers clearing on Start Over.
 - The resolver ignores criteria marked Discretion or Part 2 when computing status, and the
   unanswered baseline still matches the backend's own output charge for charge.
 - Both suites execute the same fixture table.

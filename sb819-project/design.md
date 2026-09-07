@@ -28,8 +28,13 @@ PDF; Generate Paperwork; the Expanded view.
 
 ## What enters the analysis
 
-A charge is analyzed when both hold:
+A charge is analyzed when all of these hold:
 
+- It is a conviction. SB 819 sets aside convictions, and expungement ineligibility alone does
+  not make a charge one: a dismissed traffic violation is ineligible for expungement too.
+- Its charge type is not one the record summary hides. Traffic violations and parking tickets
+  are convictions expungement cannot reach, and a page of them reported as ineligible
+  convictions would tell a volunteer nothing.
 - Its case location is Multnomah. Other counties are excluded from the view entirely. A
   Clackamas charge marked "SB-819 Ineligible" would read as "the DA said no" when the truth
   is that Clackamas's policy is not yet implemented.
@@ -39,7 +44,7 @@ A charge is analyzed when both hold:
   under 137.225, so `WILL_BE_ELIGIBLE`, `POSSIBLY_ELIGIBLE`, `NEEDS_MORE_ANALYSIS`,
   `UNKNOWN`, and `INELIGIBLE_IF_RESTITUTION_OWED` are all out of scope.
 
-Both conditions are also reported as passed main criteria on the charges that survive them,
+The county and expungeability conditions are also reported as passed main criteria on the charges that survive them,
 so the detail panel shows the full criteria list rather than an unexplained subset.
 
 ## Criteria
@@ -86,9 +91,9 @@ All four gates must hold, plus at least one of the five alternatives.
 | Conviction is not subject to ORS 137.690 or ORS 137.719 | Ruled out from OECI when the record carries no felony sex crime convictions; otherwise a question |
 | — at least one of — | |
 | Sentenced as a juvenile, term remaining, approaching 25, transferring to adult prison | Question |
-| Committed the crime when under 18 | `case.summary.birth_year` against `charge.date` |
-| Over 60, or terminal or debilitating illness, or on hospice | Age from `birth_year`; illness is a question |
-| Non-person crimes totaling more than 10 years | Person status from `PersonFelonyClassB.statutes`; sentence length is a question |
+| Committed the crime when under 18 | The record's birth year against `charge.date`; a question at exactly 18 or with no year |
+| Over 60, or terminal or debilitating illness, or on hospice | Age from the record's birth year; illness is a question |
+| Non-person crimes totaling more than 10 years | Person status from the OAR 213-003-0001(14) list, `PERSON_FELONY_SECTIONS`; sentence length is a question |
 | Person crimes totaling more than 16 years | as above |
 
 ORS 137.690 (25-year mandatory minimum on a repeat major felony sex crime) and ORS 137.719
@@ -253,9 +258,10 @@ Alias `("sb", "819", "", "")`, listed in `DemoInfo.tsx`. The record exercises ev
 | Multnomah | Aggravated Murder, ORS 163.095 | Fails the aggravated murder criterion |
 | Multnomah | Rape II, ORS 163.365, Felony Class B | Registerable sex offense; blocks Collateral Consequences, survives via the other pathways |
 | Multnomah | Robbery II, ORS 164.405, person felony Class B | Passes all main criteria; Needs More Analysis with the full question set |
-| Multnomah | Possession of Weapon by Prison Inmate, ORS 166.275, Felony Class A | Non-person felony; exercises the non-person sentencing alternative |
+| Multnomah | Racketeering, ORS 166.720, Felony Class A | Non-person felony; exercises the non-person sentencing alternative |
 | Multnomah | Assault II, ORS 163.175, Felony Class A, amended disposition | Triggers the "sentenced as a felony?" question |
 | Multnomah | Arson I, ORS 164.325, committed before the applicant turned 18 | Passes the Excessive Sentencing age alternative |
+| Multnomah | Kidnapping I, ORS 163.235, Felony Class A | Registerable only if the victim was under 18; raises the reporting question |
 
 ## Testing
 
