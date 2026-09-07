@@ -5,6 +5,7 @@ import {
   partitionQuestions,
 } from "./questionCollection";
 import SB819SetAside from "./SB819SetAside";
+import SB819Held from "./SB819Held";
 import SB819Question from "./SB819Question";
 import { useAppSelector } from "../../../redux/hooks";
 import { selectSB819Answers } from "../../../redux/sb819AnswersSlice";
@@ -25,12 +26,12 @@ export default function SB819CaseQuestions({ analysis, caseNumber }: Props) {
   const chargeIds = chargeIdsForCase(analysis, caseNumber);
   const answers = useAppSelector(selectSB819Answers);
   const questions = collectQuestions(analysis, "case", chargeIds);
-  const { asked, setAside, setAsideReason } = partitionQuestions(
+  const { asked, held, setAside, setAsideReason } = partitionQuestions(
     questions,
     answers
   );
 
-  if (questions.length === 0) return null;
+  if (asked.length === 0 && setAside.length === 0) return null;
 
   return (
     <div className="bg-white br3 ph3 pv2 mh2 mb2">
@@ -41,6 +42,8 @@ export default function SB819CaseQuestions({ analysis, caseNumber }: Props) {
       {asked.map(({ criterion, target }) => (
         <SB819Question key={target} criterion={criterion} target={target} />
       ))}
+
+      <SB819Held held={held} />
 
       <SB819SetAside
         id={`sb819-case-set-aside-${caseNumber}`}

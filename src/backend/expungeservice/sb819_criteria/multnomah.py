@@ -105,6 +105,7 @@ CURRENTLY_INCARCERATED = SB819Criterion(
     citation="Page 3",
     determination=SB819Determination.QUESTION,
     pathway=SB819Pathway.EXCESSIVE_SENTENCING,
+    is_gate=True,
 )
 
 FIVE_YEARS_SERVED = SB819Criterion(
@@ -210,6 +211,7 @@ SENTENCE_COMPLETED = SB819Criterion(
     citation="Page 4",
     determination=SB819Determination.QUESTION,
     pathway=SB819Pathway.COLLATERAL_CONSEQUENCES,
+    is_gate=True,
 )
 
 NOT_REGISTERABLE_SEX_OFFENSE = SB819Criterion(

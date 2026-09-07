@@ -1,5 +1,6 @@
 import {
   SB819AnalysisData,
+  SB819ChargeAnalysisData,
   SB819CriterionResultData,
   SB819Scope,
   answerTarget,
@@ -10,6 +11,8 @@ export interface PendingQuestion {
   target: string;
   /** True once no charge can still be affected by the answer. */
   moot: boolean;
+  /** The unanswered question upstream of this one, while there is one on every charge. */
+  heldBy?: SB819CriterionResultData;
 }
 
 function isQuestion(criterion: SB819CriterionResultData) {
@@ -32,11 +35,55 @@ function noChargeStillAffectedBy(
 }
 
 /**
+ * The question that has to be met before this one is put to the client, if any.
+ *
+ * A main criterion still open on the charge comes before every pathway question, because a
+ * conviction that fails it is out under every application type. Within a pathway, the gate
+ * comes before the rest: it defines who the pathway is for, so a volunteer is not asked how
+ * long an applicant has served before it is known that the applicant is in custody. A gate
+ * that has been answered against the pathway keeps holding, since nothing behind it can
+ * change anything. A question is never held by itself.
+ */
+export function holdingQuestion(
+  charge: SB819ChargeAnalysisData,
+  criterion: SB819CriterionResultData
+): SB819CriterionResultData | undefined {
+  if (criterion.pathway === null) return undefined;
+
+  const openMain = charge.main_criteria.find(
+    (c) => isQuestion(c) && c.outcome === "Unknown"
+  );
+  if (openMain) return openMain;
+
+  if (criterion.is_gate) return undefined;
+  const pathway = charge.pathways.find((p) => p.pathway === criterion.pathway);
+  const gate = pathway?.criteria.find((c) => c.is_gate && isQuestion(c));
+  return gate && gate.outcome !== "Passed" ? gate : undefined;
+}
+
+/** Whether a charge-scope question is shown as a question on its charge or waits on another. */
+export function isHeld(
+  charge: SB819ChargeAnalysisData,
+  criterion: SB819CriterionResultData
+) {
+  return holdingQuestion(charge, criterion) !== undefined;
+}
+
+/** The answer to a holding question that lets the questions behind it through. */
+export function revealingAnswer(
+  holder: SB819CriterionResultData
+): "Yes" | "No" {
+  return holder.question?.if_yes === "SB-819 Ineligible" ? "No" : "Yes";
+}
+
+/**
  * The distinct questions at a given scope, in the order the criteria are evaluated.
  *
  * A record-scope question appears identically on every charge, so it is collected once.
  * Questions whose pathway is already ruled out everywhere are marked moot rather than
  * dropped, so the reasoning stays visible without demanding an answer that changes nothing.
+ * A question held back on every charge it appears on carries the question holding it; one
+ * that is live on any charge is not held at all.
  */
 export function collectQuestions(
   analysis: SB819AnalysisData,
@@ -44,6 +91,7 @@ export function collectQuestions(
   chargeIds: string[] = Object.keys(analysis.charges)
 ): PendingQuestion[] {
   const collected = new Map<string, PendingQuestion>();
+  const holders = new Map<string, (SB819CriterionResultData | undefined)[]>();
 
   chargeIds.forEach((id) => {
     const charge = analysis.charges[id];
@@ -59,6 +107,10 @@ export function collectQuestions(
           charge.case_number,
           charge.ambiguous_charge_id
         );
+        holders.set(target, [
+          ...(holders.get(target) ?? []),
+          holdingQuestion(charge, criterion),
+        ]);
         if (collected.has(target)) return;
         collected.set(target, {
           criterion,
@@ -68,12 +120,21 @@ export function collectQuestions(
       });
   });
 
-  return Array.from(collected.values());
+  return Array.from(collected.values()).map((question) => {
+    const onEachCharge = holders.get(question.target) ?? [];
+    const heldEverywhere =
+      onEachCharge.length > 0 && onEachCharge.every(Boolean);
+    return heldEverywhere
+      ? { ...question, heldBy: onEachCharge.find(Boolean) }
+      : question;
+  });
 }
 
 export interface PartitionedQuestions {
   /** Shown as normal: still live, or already answered. */
   asked: PendingQuestion[];
+  /** Waiting on the answer to another question, and not yet answered themselves. */
+  held: PendingQuestion[];
   /** Tucked away: nothing turns on them any more and nobody has answered them. */
   setAside: PendingQuestion[];
   /** The pathways whose collapse put those questions aside. */
@@ -81,22 +142,29 @@ export interface PartitionedQuestions {
 }
 
 /**
- * Splits questions into the ones worth showing and the ones worth folding away.
+ * Splits questions into the ones worth showing, the ones not yet reached, and the ones
+ * worth folding away.
  *
- * An answered question is never folded away, however moot it has become. It is the record
- * of a decision and the only way back from it, and hiding it would strand the volunteer
- * with an answer they could no longer change.
+ * An answered question is never held or folded away, however moot it has become. It is the
+ * record of a decision and the only way back from it, and hiding it would strand the
+ * volunteer with an answer they could no longer change. A held question outranks a moot
+ * one: the gate that holds it is the same answer that made it moot, and the volunteer
+ * never saw it, so there is nothing to fold away.
  */
 export function partitionQuestions(
   questions: PendingQuestion[],
   answers: { [target: string]: string | undefined }
 ): PartitionedQuestions {
-  const asked = questions.filter((q) => !q.moot || answers[q.target]);
-  const setAside = questions.filter((q) => q.moot && !answers[q.target]);
+  const answered = (q: PendingQuestion) => Boolean(answers[q.target]);
+  const asked = questions.filter((q) => answered(q) || (!q.heldBy && !q.moot));
+  const held = questions.filter((q) => !answered(q) && q.heldBy);
+  const setAside = questions.filter(
+    (q) => !answered(q) && !q.heldBy && q.moot
+  );
   const setAsideReason = Array.from(
     new Set(setAside.map((q) => q.criterion.pathway).filter(Boolean))
   ) as string[];
-  return { asked, setAside, setAsideReason };
+  return { asked, held, setAside, setAsideReason };
 }
 
 /** Charge ids belonging to one case, for gathering that case's questions. */

@@ -120,6 +120,10 @@ class SB819Criterion:
     scope: SB819Scope = SB819Scope.CHARGE
     # Criteria sharing a disjunction group satisfy the pathway if any one of them passes.
     disjunction_group: str = ""
+    # The question that defines who a pathway is for. The pathway's other questions are put
+    # to the client only once this one is answered in the pathway's favor, so a volunteer
+    # is not asked about time served for an applicant who is not in custody.
+    is_gate: bool = False
 
     @property
     def is_screenable(self) -> bool:

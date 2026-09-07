@@ -285,7 +285,7 @@ describe("answering questions", () => {
   it("discards answers on Start Over", async () => {
     const { user, store } = renderWith(buildAnalysis());
     await openTheAnalysis(user);
-    await answer(user, "charge:100-1:no-domestic-violence", "no");
+    await answer(user, "case:100:sentence-completed", "yes");
     expect(Object.keys(store.getState().sb819Answers.answers)).toHaveLength(1);
 
     store.dispatch(clearAllData());
@@ -327,13 +327,12 @@ describe("attributing a disqualification", () => {
     await openTheAnalysis(user);
     await answer(user, "record:currently-incarcerated", "no");
 
-    const reason = screen
+    const bars = screen
       .getAllByText("Is the applicant currently incarcerated?")
       .map((el) => el.closest("p"))
-      .find(Boolean);
-    expect(reason).toHaveTextContent(
-      /Is the applicant currently incarcerated\?\s*No/
-    );
+      .filter((p) => p && /\?\s*No$/.test(p.textContent ?? ""));
+    expect(bars.length).toBeGreaterThan(0);
+    expect(screen.queryByText(/currently incarcerated\?\s*Yes$/)).toBeNull();
   });
 });
 
@@ -412,6 +411,7 @@ describe("taking an answer back", () => {
     // decided it, and one click brings the answer back within reach.
     const { user, store } = renderWith(buildAnalysis());
     await openTheAnalysis(user);
+    await answer(user, "case:100:sentence-completed", "yes");
     await answer(user, "charge:100-1:no-domestic-violence", "yes");
 
     const header = screen.getByRole("button", {
@@ -431,6 +431,7 @@ describe("taking an answer back", () => {
   it("keeps an answered charge question answerable", async () => {
     const { user } = renderWith(buildAnalysis());
     await openTheAnalysis(user);
+    await answer(user, "case:100:sentence-completed", "yes");
     await answer(user, "charge:100-1:no-domestic-violence", "yes");
 
     const other = document.getElementById(
@@ -442,9 +443,15 @@ describe("taking an answer back", () => {
   });
 
   it("keeps the questions it set aside reachable", async () => {
+    // The gate is met, so the alternatives are on the table; then time served rules the
+    // pathway out from a charge, and the unanswered alternatives are folded, not dropped.
     const { user } = renderWith(buildAnalysis());
     await openTheAnalysis(user);
-    await answer(user, "record:currently-incarcerated", "no");
+    await answer(user, "record:currently-incarcerated", "yes");
+    expect(
+      document.getElementById("record:over-60-or-ill-yes")
+    ).toBeInTheDocument();
+    await answer(user, "charge:100-1:five-years-served", "no");
 
     const toggle = screen.getByRole("button", {
       name: /more questions, not needed/i,
@@ -454,6 +461,153 @@ describe("taking an answer back", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(
       document.getElementById("record:over-60-or-ill-yes")
+    ).toBeInTheDocument();
+  });
+});
+
+describe("questions behind a gate", () => {
+  function answer(
+    user: ReturnType<typeof userEvent.setup>,
+    target: string,
+    value: "yes" | "no"
+  ) {
+    const input = document.getElementById(`${target}-${value}`);
+    if (!input) throw new Error(`no ${value} control for ${target}`);
+    return user.click(input);
+  }
+
+  it("opens the applicant panel with the gate alone", async () => {
+    const { user } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+
+    expect(
+      document.getElementById("record:currently-incarcerated-yes")
+    ).toBeInTheDocument();
+    expect(document.getElementById("record:over-60-or-ill-yes")).toBeNull();
+    expect(document.getElementById("record:juvenile-transfer-yes")).toBeNull();
+    expect(screen.getByText(/0 of 1 answered/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/2 more questions if/).closest("p")
+    ).toHaveTextContent(
+      /2 more questions if Is the applicant currently incarcerated\? is answered Yes/
+    );
+  });
+
+  it("reveals the rest of the pathway when the gate is met", async () => {
+    const { user } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+    await answer(user, "record:currently-incarcerated", "yes");
+
+    expect(
+      document.getElementById("record:over-60-or-ill-yes")
+    ).toBeInTheDocument();
+    expect(
+      document.getElementById("record:juvenile-transfer-yes")
+    ).toBeInTheDocument();
+    expect(
+      document.getElementById("charge:100-1:five-years-served-yes")
+    ).toBeInTheDocument();
+    expect(screen.getByText(/1 of 3 answered/)).toBeInTheDocument();
+    expect(screen.queryByText(/more questions if/)).toBeNull();
+  });
+
+  it("reveals nothing and folds nothing when the gate is answered against the pathway", async () => {
+    const { user } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+    await answer(user, "record:currently-incarcerated", "no");
+
+    expect(document.getElementById("record:over-60-or-ill-yes")).toBeNull();
+    expect(
+      document.getElementById("charge:100-1:five-years-served-yes")
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /more questions, not needed/i })
+    ).toBeNull();
+    expect(screen.getByText(/1 of 1 answered/)).toBeInTheDocument();
+  });
+
+  it("names the gate on a charge row in place of the question", async () => {
+    const { user } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+
+    const row = screen
+      .getByText("Applicant has served at least five years")
+      .closest("li");
+    expect(row).toHaveTextContent(
+      /Asked if Is the applicant currently incarcerated\? is answered Yes/
+    );
+    expect(row?.querySelector("input")).toBeNull();
+
+    await answer(user, "record:currently-incarcerated", "yes");
+    expect(row?.querySelector("input")).not.toBeNull();
+  });
+
+  it("counts only the questions a charge can be asked now", async () => {
+    const { user } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+    // The two gates, one per open pathway.
+    expect(screen.getByText(/2 questions to answer/)).toBeInTheDocument();
+
+    await answer(user, "record:currently-incarcerated", "yes");
+    // Time served and the two alternatives join the collateral gate.
+    expect(screen.getByText(/4 questions to answer/)).toBeInTheDocument();
+  });
+
+  it("gates a case's charge questions on the case's own answer", async () => {
+    const { user } = renderWith(buildAnalysis({ twoChargesOnFirstCase: true }));
+    await openTheAnalysis(user);
+    expect(
+      document.getElementById("charge:100-1:no-domestic-violence-yes")
+    ).toBeNull();
+    expect(
+      document.getElementById("charge:300-1:no-domestic-violence-yes")
+    ).toBeNull();
+
+    await answer(user, "case:100:sentence-completed", "yes");
+    expect(
+      document.getElementById("charge:100-1:no-domestic-violence-yes")
+    ).toBeInTheDocument();
+    expect(
+      document.getElementById("charge:100-2:no-domestic-violence-yes")
+    ).toBeInTheDocument();
+    expect(
+      document.getElementById("charge:300-1:no-domestic-violence-yes")
+    ).toBeNull();
+  });
+
+  it("keeps an answered question on screen after its gate turns against it", async () => {
+    const { user } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+    await answer(user, "record:currently-incarcerated", "yes");
+    await answer(user, "record:over-60-or-ill", "yes");
+    await answer(user, "record:currently-incarcerated", "no");
+
+    // The record of a decision, and the only way back from it.
+    const control = document.getElementById("record:over-60-or-ill-yes");
+    expect(control).toBeInTheDocument();
+    expect(control).toBeChecked();
+    expect(document.getElementById("record:juvenile-transfer-yes")).toBeNull();
+  });
+
+  it("holds every pathway question behind an open main criterion", async () => {
+    const { user } = renderWith(buildAnalysis({ felonyUncertain: true }));
+    await openTheAnalysis(user);
+
+    expect(
+      document.getElementById("charge:100-1:sentenced-as-felony-yes")
+    ).toBeInTheDocument();
+    // Both gates wait on it, so neither panel has anything to ask yet.
+    expect(
+      screen.queryByRole("heading", { name: /About the applicant/i })
+    ).toBeNull();
+    expect(document.getElementById("case:100:sentence-completed-yes")).toBeNull();
+
+    await answer(user, "charge:100-1:sentenced-as-felony", "yes");
+    expect(
+      document.getElementById("record:currently-incarcerated-yes")
+    ).toBeInTheDocument();
+    expect(
+      document.getElementById("case:100:sentence-completed-yes")
     ).toBeInTheDocument();
   });
 });
@@ -545,6 +699,7 @@ describe("the SB-819 view", () => {
   it("states a question with both of its outcomes", async () => {
     const { user } = renderWith(buildAnalysis());
     await openTheAnalysis(user);
+    await user.click(document.getElementById("case:100:sentence-completed-yes")!);
     expect(
       screen.getByText("Did this conviction involve domestic violence?")
     ).toBeInTheDocument();

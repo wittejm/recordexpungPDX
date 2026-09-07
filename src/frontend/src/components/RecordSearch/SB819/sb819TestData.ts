@@ -67,6 +67,7 @@ interface CriterionOptions {
   scope?: SB819Scope;
   outcome?: SB819Outcome;
   group?: string;
+  gate?: boolean;
   pathway?: SB819PathwayResultData["pathway"] | null;
   question?: {
     if_yes: SB819Status;
@@ -86,6 +87,7 @@ export function criterion(
     key,
     scope: options.scope ?? "charge",
     disjunction_group: options.group ?? "",
+    is_gate: options.gate ?? false,
     is_screenable: determination === "OECI" || determination === "Question",
     name,
     description: "Detail as published in the DA information sheet.",
@@ -126,7 +128,7 @@ const CLEARS_ON_NO = {
   if_no: "Possibly SB-819 Eligible" as SB819Status,
 };
 
-/** Applicant-scope question, asked once and applied to every charge. */
+/** Applicant-scope question, asked once and applied to every charge. It gates the pathway. */
 const CURRENTLY_INCARCERATED = criterion(
   "currently-incarcerated",
   "Applicant is currently incarcerated",
@@ -134,6 +136,7 @@ const CURRENTLY_INCARCERATED = criterion(
     determination: "Question",
     scope: "record",
     outcome: "Unknown",
+    gate: true,
     pathway: "Excessive Sentencing",
     question: {
       ...CLEARS_ON_YES,
@@ -142,7 +145,7 @@ const CURRENTLY_INCARCERATED = criterion(
   }
 );
 
-/** Charge-scope gate on the same pathway, for separating a real bar from an alternative. */
+/** Charge-scope conjunct on the same pathway, for separating a real bar from an alternative. */
 const FIVE_YEARS_SERVED = criterion(
   "five-years-served",
   "Applicant has served at least five years",
@@ -190,7 +193,7 @@ const JUVENILE_TRANSFER = criterion(
   }
 );
 
-/** Case-scope question, answered once per prosecution. */
+/** Case-scope question, answered once per prosecution. It gates the pathway. */
 const SENTENCE_COMPLETED = criterion(
   "sentence-completed",
   "Applicant has fully completed the sentence",
@@ -198,6 +201,7 @@ const SENTENCE_COMPLETED = criterion(
     determination: "Question",
     scope: "case",
     outcome: "Unknown",
+    gate: true,
     pathway: "Collateral Consequences",
     question: {
       ...CLEARS_ON_YES,
@@ -239,11 +243,29 @@ function pathway(
   return { pathway: name, status, criteria };
 }
 
+/** The one main criterion that can be a question: the disposition was amended. */
+const FELONY_UNCERTAIN = criterion(
+  "sentenced-as-felony",
+  "Conviction was sentenced as a felony",
+  {
+    determination: "OECI",
+    outcome: "Unknown",
+    question: {
+      ...CLEARS_ON_YES,
+      text: "Was this conviction sentenced as a felony?",
+    },
+  }
+);
+
 function chargeAnalysis(
   id: string,
   caseNumber: string,
   name: string,
-  options: { registerableFails?: boolean; mainFails?: boolean } = {}
+  options: {
+    registerableFails?: boolean;
+    mainFails?: boolean;
+    felonyUncertain?: boolean;
+  } = {}
 ): SB819ChargeAnalysisData {
   if (options.mainFails) {
     return {
@@ -281,12 +303,16 @@ function chargeAnalysis(
     REHABILITATION,
   ];
 
+  const main = options.felonyUncertain
+    ? [PASSING_MAIN[0], PASSING_MAIN[1], FELONY_UNCERTAIN, PASSING_MAIN[3]]
+    : PASSING_MAIN;
+
   return {
     ambiguous_charge_id: id,
     case_number: caseNumber,
     charge_name: name,
     status: "Needs More Analysis",
-    main_criteria: PASSING_MAIN,
+    main_criteria: main,
     pathways: [
       pathway("Excessive Sentencing", "Needs More Analysis", [
         CURRENTLY_INCARCERATED,
@@ -318,6 +344,8 @@ interface Options {
   empty?: boolean;
   /** A second conviction on case 100, for exercising case-scope answers. */
   twoChargesOnFirstCase?: boolean;
+  /** The first charge's sentencing level is a question, which holds everything behind it. */
+  felonyUncertain?: boolean;
 }
 
 export function buildAnalysis({
@@ -325,6 +353,7 @@ export function buildAnalysis({
   blockCollateralConsequences = false,
   empty = false,
   twoChargesOnFirstCase = false,
+  felonyUncertain = false,
 }: Options = {}): SB819AnalysisData {
   const charges: { [id: string]: SB819ChargeAnalysisData } = {};
 
@@ -336,6 +365,7 @@ export function buildAnalysis({
       {
         registerableFails: blockCollateralConsequences,
         mainFails: !possible,
+        felonyUncertain,
       }
     );
     if (twoChargesOnFirstCase) {

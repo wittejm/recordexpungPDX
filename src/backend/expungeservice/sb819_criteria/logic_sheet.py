@@ -270,18 +270,15 @@ def build(module, questions_by_key: Dict[str, object]) -> Dict:
             numbers[criterion.key] = ""
             blocks.append(_criterion_block("", criterion, screened=False))
 
-        sections.append(
-            {
-                "number": f"3.{p_index}",
-                "title": pathway.value,
-                "rule": (
-                    f"Available if and only if {clause}."
-                    if clause
-                    else "This pathway adds no criterion that can be screened."
-                ),
-                "blocks": blocks,
-            }
-        )
+        rule = f"Available if and only if {clause}." if clause else "This pathway adds no criterion that can be screened."
+        gates = [c for c in screened if c.is_gate]
+        if gates:
+            rule += (
+                f" {numbers[gates[0].key]} is put to the client first, and the pathway's other questions "
+                "are asked only once it is met."
+            )
+
+        sections.append({"number": f"3.{p_index}", "title": pathway.value, "rule": rule, "blocks": blocks})
 
     questions = [
         {

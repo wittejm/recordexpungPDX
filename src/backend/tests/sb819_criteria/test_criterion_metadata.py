@@ -81,11 +81,28 @@ def test_the_payload_exposes_what_the_browser_resolves_with():
 
     every_criterion = charge["main_criteria"] + [c for p in charge["pathways"] for c in p["criteria"]]
     for entry in every_criterion:
-        for field in ["key", "scope", "disjunction_group", "is_screenable"]:
+        for field in ["key", "scope", "disjunction_group", "is_gate", "is_screenable"]:
             assert field in entry, f"{field} missing from {entry['name']}"
 
     alternatives = [c["key"] for c in every_criterion if c["disjunction_group"]]
     assert "under-18-at-offense" in alternatives
+
+
+def test_a_gate_is_a_single_question_that_defines_its_pathway():
+    """The browser holds a pathway's other questions back until its gate is met.
+
+    That only makes sense for one criterion per pathway, and only for one the client
+    answers: a gate settled from the record would never open anything, and a gate inside a
+    disjunction group would hold questions back on an alternative that need not be met.
+    """
+    gates = [c for c in ALL_CRITERIA if c.is_gate]
+    assert {c.key for c in gates} == {"currently-incarcerated", "sentence-completed"}
+    pathways = [c.pathway for c in gates]
+    assert len(pathways) == len(set(pathways)), "two gates on one pathway"
+    for gate in gates:
+        assert gate.pathway is not None, f"{gate.key}: a main criterion gates every pathway already"
+        assert gate.determination is SB819Determination.QUESTION, f"{gate.key}: a gate must be a question"
+        assert not gate.disjunction_group, f"{gate.key}: a gate cannot be one of several alternatives"
 
 
 def test_every_criterion_is_explained_on_the_rules_page():

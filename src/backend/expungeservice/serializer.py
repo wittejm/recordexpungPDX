@@ -63,6 +63,7 @@ class ExpungeModelEncoder(flask.json.JSONEncoder):
             "key": criterion.key,
             "scope": criterion.scope,
             "disjunction_group": criterion.disjunction_group,
+            "is_gate": criterion.is_gate,
             "is_screenable": criterion.is_screenable,
             "name": criterion.name,
             "description": criterion.description,

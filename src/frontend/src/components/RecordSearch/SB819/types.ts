@@ -33,6 +33,8 @@ export interface SB819CriterionResultData {
   key: string;
   scope: SB819Scope;
   disjunction_group: string;
+  /** The question that defines who the pathway is for; its other questions wait on this one. */
+  is_gate: boolean;
   is_screenable: boolean;
   name: string;
   description: string;

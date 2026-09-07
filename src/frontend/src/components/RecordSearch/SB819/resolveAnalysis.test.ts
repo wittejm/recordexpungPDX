@@ -56,6 +56,7 @@ function build(entry: FixtureCriterion): SB819CriterionResultData {
     key: entry.key,
     scope: "charge",
     disjunction_group: entry.group ?? "",
+    is_gate: false,
     is_screenable: SCREENABLE.includes(entry.determination),
     name: entry.key,
     description: "",

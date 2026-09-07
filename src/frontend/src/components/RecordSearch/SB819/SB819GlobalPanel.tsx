@@ -6,6 +6,7 @@ import { useAppSelector } from "../../../redux/hooks";
 import { selectSB819Answers } from "../../../redux/sb819AnswersSlice";
 import { collectQuestions, partitionQuestions } from "./questionCollection";
 import SB819SetAside from "./SB819SetAside";
+import SB819Held from "./SB819Held";
 import SB819Question from "./SB819Question";
 import { SB819AnalysisData } from "./types";
 
@@ -17,12 +18,14 @@ interface Props {
  * The questions that are facts about the applicant rather than about any conviction.
  *
  * Asked once here and applied to every charge, so a volunteer answers "is the applicant
- * currently incarcerated" one time instead of once per conviction.
+ * currently incarcerated" one time instead of once per conviction. The panel opens with the
+ * questions that gate a pathway and grows as they are met; it renders nothing at all while
+ * every question in it waits on an answer given elsewhere.
  */
 export default function SB819GlobalPanel({ analysis }: Props) {
   const questions = collectQuestions(analysis, "record");
   const answers = useAppSelector(selectSB819Answers);
-  const { asked, setAside, setAsideReason } = partitionQuestions(
+  const { asked, held, setAside, setAsideReason } = partitionQuestions(
     questions,
     answers
   );
@@ -36,7 +39,7 @@ export default function SB819GlobalPanel({ analysis }: Props) {
     isOpenToStart: true,
   });
 
-  if (questions.length === 0) return null;
+  if (asked.length === 0 && setAside.length === 0) return null;
 
   return (
     <div
@@ -64,6 +67,8 @@ export default function SB819GlobalPanel({ analysis }: Props) {
         {asked.map(({ criterion, target }) => (
           <SB819Question key={target} criterion={criterion} target={target} />
         ))}
+
+        <SB819Held held={held} />
 
         <SB819SetAside
           id="sb819-applicant-set-aside"
