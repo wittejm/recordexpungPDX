@@ -50,7 +50,7 @@ class DemoRecords:
         "date": date_class.today(),
         "district_attorney_number": "01234567",
         "sid": "OR12345678",
-        "restitution": False
+        "restitution": False,
     }
     shared_charge_data = {
         "balance_due_in_cents": 0,
@@ -216,7 +216,295 @@ class DemoRecords:
 
     # "date": date_class.today() - relativedelta(years=3, days=9, months =5),
 
+    """
+    Exercises every Multnomah SB-819 limiting criterion. Convictions are dated far enough back
+    that the ORS 137.225(7)(b) blocking windows have all closed, so the one normally-eligible
+    charge stays eligible and out of the SB-819 view.
+    """
+    sb819_birth_year = date_class.today().year - 36
+
+    sb819_record = [
+        # Eligible under ORS 137.225, so it never enters the SB-819 analysis.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-100",
+                    "location": "Multnomah",
+                    "date": date_class.today() - relativedelta(years=12),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-100-1",
+                        "name": "Theft in the Second Degree",
+                        "statute": "164.045",
+                        "level": "Misdemeanor Class A",
+                        "date": date_class.today() - relativedelta(years=12),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=12), ruling="Convicted"
+                        ),
+                    },
+                ),
+            ),
+        ),
+        # Ineligible under 137.225, but outside Multnomah, so it is excluded from the view.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-200",
+                    "location": "Clackamas",
+                    "violation_type": "Offense Felony",
+                    "date": date_class.today() - relativedelta(years=14),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-200-1",
+                        "name": "Assault in the First Degree",
+                        "statute": "163.185",
+                        "level": "Felony Class A",
+                        "date": date_class.today() - relativedelta(years=14),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=14), ruling="Convicted"
+                        ),
+                    },
+                ),
+            ),
+        ),
+        # Fails the main criterion that the conviction was sentenced as a felony.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-300",
+                    "location": "Multnomah",
+                    "date": date_class.today() - relativedelta(years=13),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-300-1",
+                        "name": "Driving Under the Influence of Intoxicants",
+                        "statute": "813.010",
+                        "level": "Misdemeanor Class A",
+                        "date": date_class.today() - relativedelta(years=13),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=13), ruling="Convicted"
+                        ),
+                    },
+                ),
+            ),
+        ),
+        # Fails the main criterion excluding aggravated murder.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-400",
+                    "location": "Multnomah",
+                    "violation_type": "Offense Felony",
+                    "date": date_class.today() - relativedelta(years=20),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-400-1",
+                        "name": "Aggravated Murder",
+                        "statute": "163.095",
+                        "level": "Felony Class A",
+                        "date": date_class.today() - relativedelta(years=20),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=20), ruling="Convicted"
+                        ),
+                    },
+                ),
+            ),
+        ),
+        # Registerable sex offense: blocks Collateral Consequences, survives the other pathways.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-500",
+                    "location": "Multnomah",
+                    "violation_type": "Offense Felony",
+                    "date": date_class.today() - relativedelta(years=15),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-500-1",
+                        "name": "Rape in the Second Degree",
+                        "statute": "163.365",
+                        "level": "Felony Class B",
+                        "date": date_class.today() - relativedelta(years=15),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=15), ruling="Convicted"
+                        ),
+                    },
+                ),
+            ),
+        ),
+        # Person felony: passes every main criterion, and exercises the person-crime alternative.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-600",
+                    "location": "Multnomah",
+                    "violation_type": "Offense Felony",
+                    "date": date_class.today() - relativedelta(years=16),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-600-1",
+                        "name": "Robbery in the Second Degree",
+                        "statute": "164.405",
+                        "level": "Felony Class B",
+                        "date": date_class.today() - relativedelta(years=16),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=16), ruling="Convicted"
+                        ),
+                    },
+                ),
+            ),
+        ),
+        # Non-person felony: exercises the non-person alternative.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-700",
+                    "location": "Multnomah",
+                    "violation_type": "Offense Felony",
+                    "date": date_class.today() - relativedelta(years=17),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-700-1",
+                        "name": "Possession of Weapon by Prison Inmate",
+                        "statute": "166.275",
+                        "level": "Felony Class A",
+                        "date": date_class.today() - relativedelta(years=17),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=17), ruling="Convicted"
+                        ),
+                    },
+                ),
+            ),
+        ),
+        # Amended disposition: the sentencing level may differ from the charging level.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-800",
+                    "location": "Multnomah",
+                    "violation_type": "Offense Felony",
+                    "date": date_class.today() - relativedelta(years=18),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-800-1",
+                        "name": "Assault in the Second Degree",
+                        "statute": "163.175",
+                        "level": "Felony Class A",
+                        "date": date_class.today() - relativedelta(years=18),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=18), ruling="Convicted", amended=True
+                        ),
+                    },
+                ),
+            ),
+        ),
+        # Committed before the applicant turned 18: satisfies an Excessive Sentencing alternative.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-900",
+                    "location": "Multnomah",
+                    "violation_type": "Offense Felony",
+                    "date": date_class.today() - relativedelta(years=19),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-900-1",
+                        "name": "Arson in the First Degree",
+                        "statute": "164.325",
+                        "level": "Felony Class A",
+                        "date": date_class.today() - relativedelta(years=19),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=19), ruling="Convicted"
+                        ),
+                    },
+                ),
+            ),
+        ),
+    ]
+
     records = {
+        Alias("sb", "819", "", ""): sb819_record,
         Alias("john", "common", "", ""): common_name_record_1 + common_name_record_2,
         Alias("john", "common", "", "1/1/1970"): common_name_record_1,
         Alias("john", "common", "", "2/2/1985"): common_name_record_2,
@@ -593,7 +881,7 @@ class DemoRecords:
                         "case_number": "1234567",
                         "violation_type": "Offense Violation",
                         "balance_due_in_cents": 0,
-                        "location":"Benton"
+                        "location": "Benton",
                     },
                 ),
                 charges=(
@@ -654,8 +942,7 @@ class DemoRecords:
                         "name": "Jon Notaperson",
                         "case_number": "223456",
                         "violation_type": "Offense Felony",
-                        "d"
-                        "balance_due_in_cents": 0,
+                        "d" "balance_due_in_cents": 0,
                     },
                 ),
                 charges=(
@@ -685,8 +972,7 @@ class DemoRecords:
                         "name": "John Notaperson",
                         "case_number": "323456",
                         "violation_type": "Offense Misdemeanor",
-                        "d"
-                        "balance_due_in_cents": 0,
+                        "d" "balance_due_in_cents": 0,
                     },
                 ),
                 charges=(

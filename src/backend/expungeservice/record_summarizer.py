@@ -4,6 +4,7 @@ from expungeservice.models.case import Case
 from expungeservice.models.record import QuestionSummary, Record
 from expungeservice.models.record_summary import RecordSummary, CountyFines, CaseFine
 from expungeservice.charges_summarizer import ChargesSummarizer
+from expungeservice.sb819_analyzer import SB819Analyzer
 from expungeservice.models.disposition import DispositionStatus
 from expungeservice.models.expungement_result import ChargeEligibilityStatus
 from typing import Dict, List, Tuple
@@ -14,12 +15,14 @@ class RecordSummarizer:
     def summarize(record: Record, questions: Dict[str, QuestionSummary]) -> RecordSummary:
         county_fines = RecordSummarizer._build_county_balances(record)
         charges_grouped_by_eligibility_and_case = ChargesSummarizer.build_charges_for_summary_panel(record)
+        sb819_analysis = SB819Analyzer.build(record)
         return RecordSummary(
             record=record,
             questions=questions,
             charges_grouped_by_eligibility_and_case=charges_grouped_by_eligibility_and_case,
             total_charges=len(record.charges),
             county_fines=county_fines,
+            sb819_analysis=sb819_analysis,
         )
 
     @staticmethod
@@ -34,4 +37,3 @@ class RecordSummarizer:
             fines = [CaseFine(case.summary.case_number, case.summary.get_balance_due()) for case in cases_with_fines]
             county_fines_list.append(CountyFines(location, fines))
         return county_fines_list
-

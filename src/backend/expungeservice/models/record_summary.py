@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Tuple
 
 from expungeservice.models.record import Record, QuestionSummary
+from expungeservice.models.sb819 import SB819Analysis
 
 
 @dataclass
@@ -30,6 +31,7 @@ class RecordSummary:
     total_charges: int
     charges_grouped_by_eligibility_and_case: ChargesForSummaryPanel
     county_fines: List[CountyFines]
+    sb819_analysis: SB819Analysis
 
     @property
     def total_fines_due(self):
