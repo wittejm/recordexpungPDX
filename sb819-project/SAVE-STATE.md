@@ -5,9 +5,8 @@ The branch is five commits on top of `upstream/master` (codeforpdx), which local
 matches. Nothing is pushed.
 
 Read [design.md](design.md) for feature 1 and [question-answers-plan.md](question-answers-plan.md)
-for the question mechanics. The `.html` files beside them are published renderings of earlier
-drafts; the `.md` files are the ones kept current. This file is the resume point: what is
-done, what is decided, what is not checked, and what bites you when you pick it up again.
+for the question mechanics. This file is the resume point: what is done, what is decided,
+what is not checked, and what bites you when you pick it up again.
 
 ---
 
