@@ -52,8 +52,9 @@ class SB819Factory:
 
     @staticmethod
     def case(charges, case_number="1", location="Multnomah", birth_year="1990"):
+        # OECI leaves the birth year off the case header for some records; None does the same.
         return CaseFactory.create(
-            info=["John Doe", birth_year],
+            info=["John Doe", birth_year] if birth_year else ["John Doe"],
             case_number=case_number,
             date_location=["1/1/1995", location],
             type_status=["Offense Felony", "Closed"],

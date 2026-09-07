@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "./store";
+import { RECORD_LOADING } from "./search/types";
 import { SB819Answer } from "../components/RecordSearch/SB819/types";
 
 /**
@@ -9,7 +10,9 @@ import { SB819Answer } from "../components/RecordSearch/SB819/types";
  * once and reaches every charge, while a question about a conviction is stored per charge.
  *
  * Answers are held here only. They are not written to disk, not sent with the search, and
- * are discarded on reload and by Start Over, which resets every slice.
+ * are discarded on reload and by Start Over, which resets every slice. They are also
+ * discarded when a new search starts: the targets carry no name, so one client's answers
+ * would otherwise be applied to the next client's record.
  */
 export interface SB819AnswersState {
   answers: { [target: string]: SB819Answer };
@@ -30,13 +33,13 @@ export const sb819AnswersSlice = createSlice({
     clearSB819Answer: (state, action: PayloadAction<string>) => {
       delete state.answers[action.payload];
     },
-    clearAllSB819Answers: (state) => {
-      state.answers = {};
-    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(RECORD_LOADING, () => initialState);
   },
 });
 
-export const { answerSB819Question, clearSB819Answer, clearAllSB819Answers } =
+export const { answerSB819Question, clearSB819Answer } =
   sb819AnswersSlice.actions;
 
 export const selectSB819Answers = (state: RootState) =>

@@ -27,6 +27,38 @@ def test_a_charge_outside_multnomah_is_excluded():
     assert analysis.counties_analyzed == ()
 
 
+def test_a_dismissed_charge_is_excluded_even_when_expungement_cannot_reach_it():
+    """A dismissed traffic violation is ineligible for expungement, and is not a conviction.
+    SB 819 sets aside convictions only, so it has no place in the analysis."""
+    from expungeservice.models.disposition import DispositionCreator
+    from expungeservice.util import DateWithFuture as date_class
+
+    analysis = analyze(
+        name="Failure to Obey Traffic Control Device",
+        statute="811.265",
+        level="Violation Class B",
+        violation_type="Offense Violation",
+        disposition=DispositionCreator.create(date=date_class.today(), ruling="Dismissed"),
+    )
+    assert analysis.charge_analyses == ()
+
+
+def test_a_convicted_traffic_violation_is_excluded_like_the_record_summary_excludes_it():
+    """A ticket is a conviction expungement cannot reach, and it is not an SB 819 case. The
+    record summary hides these charge types, and the view follows the summary."""
+    from expungeservice.models.disposition import DispositionCreator
+    from expungeservice.util import DateWithFuture as date_class
+
+    analysis = analyze(
+        name="Speeding",
+        statute="811.111",
+        level="Violation Class C",
+        violation_type="Offense Violation",
+        disposition=DispositionCreator.create(date=date_class.today(), ruling="Convicted"),
+    )
+    assert analysis.charge_analyses == ()
+
+
 def test_a_charge_that_is_eligible_now_is_excluded():
     assert analyze(eligibility=ChargeEligibilityStatus.ELIGIBLE_NOW).charge_analyses == ()
 

@@ -144,3 +144,14 @@ def test_the_rules_page_quotes_only_questions_the_software_asks():
     by_name = {c.name for c in all_criteria(multnomah) if c.key in asked}
     # Every criterion put as a question is quoted, and nothing else is invented.
     assert by_name <= quoted
+    # The record-determined criteria that fall back to a question are quoted too, which
+    # holds only while the demo record the sheet reads from exercises each fallback.
+    sometimes_asked = {
+        "Conviction was sentenced as a felony",
+        "Conviction is not subject to ORS 137.690 or ORS 137.719",
+        "Applicant committed the crime when under 18",
+        "Applicant is over 60, terminally or debilitatingly ill, or on hospice care",
+        "Conviction is not a registerable sex offense",
+    }
+    assert sometimes_asked <= quoted, f"not quoted: {sometimes_asked - quoted}"
+    assert len(sheet["questions"]) == 14

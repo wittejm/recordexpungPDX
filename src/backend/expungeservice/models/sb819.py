@@ -168,12 +168,14 @@ def _resolve_outcomes(results: Tuple[SB819CriterionResult, ...]) -> SB819Status:
 
 
 def disqualifying_results(results) -> Tuple["SB819CriterionResult", ...]:
-    """The failed criteria that actually disqualify, in the order they were evaluated.
+    """The failed criteria that bar a pathway, in the order they were evaluated.
 
     A criterion in a disjunction group only disqualifies when every alternative in that group
     failed. One failed alternative among several is not a bar, and reporting it as one would
-    read as a disqualification the criteria do not impose.
+    read as a disqualification the criteria do not impose. Criteria that are not screenable
+    take no part in a status, so they cannot be what barred it.
     """
+    results = tuple(r for r in results if r.criterion.is_screenable)
     disqualifying = []
     fully_failed_groups = set()
     group_names = [r.criterion.disjunction_group for r in results if r.criterion.disjunction_group]

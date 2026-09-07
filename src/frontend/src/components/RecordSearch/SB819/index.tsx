@@ -11,7 +11,7 @@ import { SB819AnalysisData } from "./types";
  * Keeps only the charges the analysis covers, and drops cases left with none.
  *
  * The analysis already excludes charges outside the counties with published criteria and
- * charges expungement can still reach, so this follows it rather than re-deriving the rule.
+ * charges expungement can still reach, so this follows it.
  */
 function analyzedCasesOnly(
   cases: CaseData[],

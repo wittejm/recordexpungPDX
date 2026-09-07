@@ -16,8 +16,8 @@ from expungeservice.util import DateWithFuture as date_class, LRUCache
 def _logic_sheet():
     """The criteria as a numbered sheet, built once.
 
-    The wording of each question is read off a real analysis rather than restated here, so
-    the sheet cannot quote a question the software does not ask.
+    The wording of each question is read off a real analysis, so the sheet cannot quote a
+    question the software does not ask.
     """
     record, questions = RecordCreator.build_record(
         DemoRecords.build_search_results,

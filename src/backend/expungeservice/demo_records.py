@@ -428,8 +428,8 @@ class DemoRecords:
                     data={
                         **shared_charge_data,
                         "ambiguous_charge_id": "SB819-700-1",
-                        "name": "Possession of Weapon by Prison Inmate",
-                        "statute": "166.275",
+                        "name": "Racketeering",
+                        "statute": "166.720",
                         "level": "Felony Class A",
                         "date": date_class.today() - relativedelta(years=17),
                         "disposition": DispositionCreator.create(
@@ -496,6 +496,38 @@ class DemoRecords:
                         "date": date_class.today() - relativedelta(years=19),
                         "disposition": DispositionCreator.create(
                             date=date_class.today() - relativedelta(years=19), ruling="Convicted"
+                        ),
+                    },
+                ),
+            ),
+        ),
+        # Registerable only if the victim was under 18, which OECI does not record: the
+        # reporting requirement is put to the client as a question.
+        OeciCase(
+            summary=from_dict(
+                data_class=CaseSummary,
+                data={
+                    **shared_case_data,
+                    "name": "SB 819",
+                    "birth_year": sb819_birth_year,
+                    "case_number": "SB819-1000",
+                    "location": "Multnomah",
+                    "violation_type": "Offense Felony",
+                    "date": date_class.today() - relativedelta(years=11),
+                },
+            ),
+            charges=(
+                from_dict(
+                    data_class=OeciCharge,
+                    data={
+                        **shared_charge_data,
+                        "ambiguous_charge_id": "SB819-1000-1",
+                        "name": "Kidnapping in the First Degree",
+                        "statute": "163.235",
+                        "level": "Felony Class A",
+                        "date": date_class.today() - relativedelta(years=11),
+                        "disposition": DispositionCreator.create(
+                            date=date_class.today() - relativedelta(years=11), ruling="Convicted"
                         ),
                     },
                 ),

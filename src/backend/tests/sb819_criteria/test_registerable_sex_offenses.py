@@ -35,6 +35,30 @@ def test_attempts_and_conspiracies_are_registerable():
 
 def test_an_attempt_at_a_non_sex_crime_is_not_registerable():
     assert not is_registerable_sex_offense("161405", "Attempt to Commit a Class A Misdemeanor")
+    assert not is_registerable_sex_offense("161405", "Attempted Robbery in the First Degree")
+    # Prostitution itself, ORS 167.007, is not on the list; compelling and promoting it are.
+    assert not is_registerable_sex_offense("161405", "Attempt to Commit Prostitution")
+    assert is_registerable_sex_offense("161405", "Attempt to Commit Promoting Prostitution")
+
+
+def test_attempts_at_every_enumerated_crime_are_registerable():
+    for name in [
+        "Attempted Incest",
+        "Attempt to Commit Encouraging Child Sexual Abuse in the First Degree",
+        "Attempted Online Sexual Corruption of a Child in the Second Degree",
+        "Attempted Using a Child in a Display of Sexually Explicit Conduct",
+        "Attempt to Commit Contributing to the Sexual Delinquency of a Minor",
+        "Attempted Sexual Assault of an Animal",
+    ]:
+        assert is_registerable_sex_offense("161405", name), name
+
+
+def test_an_attempt_at_a_conditionally_registerable_crime_is_asked_about():
+    """An attempt is registerable on the same unrecorded fact as the completed crime."""
+    assert is_registerable_sex_offense("161405", "Attempt to Commit Kidnapping in the Second Degree")
+    assert is_conditionally_registerable("161405", "Attempt to Commit Kidnapping in the Second Degree")
+    assert is_conditionally_registerable("161405", "Attempted Luring a Minor")
+    assert not is_conditionally_registerable("161405", "Attempt to Commit Rape in the First Degree")
 
 
 def test_offenses_registerable_only_in_unrecorded_circumstances_are_flagged():

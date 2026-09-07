@@ -282,6 +282,19 @@ describe("answering questions", () => {
     expect(collateral.status).toBe("Possibly SB-819 Eligible");
   });
 
+  it("discards answers and leaves the view when a new search starts", async () => {
+    // The targets carry no name, so one client's answers would otherwise be applied to the
+    // next client's record.
+    const { user, store } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+    await answer(user, "record:currently-incarcerated", "yes");
+    expect(store.getState().sb819.isViewing).toBe(true);
+
+    store.dispatch({ type: "RECORD_LOADING" });
+    expect(store.getState().sb819Answers.answers).toEqual({});
+    expect(store.getState().sb819.isViewing).toBe(false);
+  });
+
   it("discards answers on Start Over", async () => {
     const { user, store } = renderWith(buildAnalysis());
     await openTheAnalysis(user);
@@ -608,6 +621,35 @@ describe("questions behind a gate", () => {
     ).toBeInTheDocument();
     expect(
       document.getElementById("case:100:sentence-completed-yes")
+    ).toBeInTheDocument();
+  });
+});
+
+describe("leaving the view", () => {
+  it("returns to the summary when the record stops having anything to analyze", async () => {
+    // An edit can remove the last analyzed charge from a record the view was opened on.
+    const { user, store } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+    expect(
+      screen.queryByRole("heading", { name: "Search Summary" })
+    ).not.toBeInTheDocument();
+
+    const record = store.getState().search.record!;
+    act(() => {
+      store.dispatch({
+        type: "DISPLAY_RECORD",
+        record: {
+          ...record,
+          summary: {
+            ...record.summary,
+            sb819_analysis: buildAnalysis({ empty: true }),
+          },
+        },
+        questions: {},
+      });
+    });
+    expect(
+      screen.getByRole("heading", { name: "Search Summary" })
     ).toBeInTheDocument();
   });
 });

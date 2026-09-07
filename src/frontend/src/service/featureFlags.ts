@@ -4,7 +4,7 @@
  * Tiers are read from the hostname, which is the only signal available to a static build:
  * the frontend is compiled once into an image that is deployed to both staging and
  * production. Anything unrecognized is treated as production, so a new domain hides
- * unreleased work rather than exposing it.
+ * unreleased work.
  */
 
 export type Tier = "local" | "staging" | "production";

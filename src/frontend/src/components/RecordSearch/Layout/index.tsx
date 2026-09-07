@@ -60,8 +60,12 @@ export default function Layout({
   const stats = useAppSelector(selectStats);
   // The SB-819 view is a mode of the default view; the expanded view has no badge to open it.
   // Guarded here as well as on the badge, so the view cannot surface from stale state.
+  // The view stands in for the summary only while the record gives it something to show;
+  // an edit can remove the last analyzed charge from a record the view was opened on.
   const isViewingSB819 =
-    useAppSelector(selectIsViewingSB819) && sb819IsEnabled();
+    useAppSelector(selectIsViewingSB819) &&
+    sb819IsEnabled() &&
+    Boolean(record?.summary?.sb819_analysis?.has_analyzed_charges);
   const [showColor, setShowColor] = useState(true);
   const { selectedRadioValue, ...radioGroupProps } = useRadioGroup({
     label: "Summary overview sort options",

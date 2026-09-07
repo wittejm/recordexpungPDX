@@ -78,14 +78,12 @@ REGISTERABLE_SEX_OFFENSE_STATUTES: List[str] = [
     "166087",
 ]
 
-"""
-Several offenses register only in circumstances OECI does not record: a victim under 18
-for either degree of kidnapping, an offender at least 18 for sexual misconduct, a prior
-conviction for public or private indecency, a court designation for luring a minor,
-purchasing sex with a minor, and invasion of personal privacy. Treating them as
-registerable is the conservative reading, since an applicant told they may be eligible
-and then rejected is the outcome this feature exists to prevent.
-"""
+# Several offenses register only in circumstances OECI does not record: a victim under 18
+# for either degree of kidnapping, an offender at least 18 for sexual misconduct, a prior
+# conviction for public or private indecency, a court designation for luring a minor,
+# purchasing sex with a minor, and invasion of personal privacy. Whether one of these
+# requires reporting is put to the client as a question, since the record cannot settle it
+# either way.
 CONDITIONALLY_REGISTERABLE_STATUTES: List[str] = [
     "163235",  # Kidnapping I, only if the victim was under 18
     "163225",  # Kidnapping II, only if the victim was under 18
@@ -99,33 +97,68 @@ CONDITIONALLY_REGISTERABLE_STATUTES: List[str] = [
     "166087",  # Abuse of a corpse I, only under subsection (1)(a)
 ]
 
-ATTEMPT_NAME_MARKERS = ["attempt to commit", "attempted"]
-CONSPIRACY_NAME_MARKERS = ["conspiracy", "conspire"]
+INCHOATE_NAME_MARKERS = ["attempt", "conspir"]
+
+# The crimes of ORS 163A.005(5)(a) to (y) as OECI names them, for reading an attempt or a
+# conspiracy off the charge name: an inchoate charge carries the statute of the attempt or
+# conspiracy itself, ORS 161.405 or 161.450, and names its object. Each entry is a fragment
+# common to every degree of the crime it stands for. Crimes whose registration turns on an
+# unrecorded fact are listed apart, so that an attempt at one is asked about as the completed
+# crime would be.
+INCHOATE_TARGETS: List[str] = [
+    "rape",
+    "sodomy",
+    "sexual penetration",
+    "sexual abuse",  # Sexual Abuse in any degree, and Encouraging Child Sexual Abuse
+    "incest",
+    "sexually explicit conduct",  # Using a Child in a Display of, and Possession of Materials Depicting
+    "child pornography",
+    "paying for viewing",
+    "compelling prostitution",
+    "promoting prostitution",
+    "contributing to the sexual delinquency",
+    "online sexual corruption",
+    "sexual assault of an animal",
+    "fraudulent representation",  # Sexual Abuse by Fraudulent Representation
+]
+CONDITIONAL_INCHOATE_TARGETS: List[str] = [
+    "kidnapping",
+    "sexual misconduct",
+    "public indecency",
+    "private indecency",
+    "luring a minor",
+    "purchasing sex with a minor",
+    "invasion of personal privacy",
+    "trafficking in persons",
+    "abuse of a corpse",
+]
 
 
 def _section(statute: str) -> str:
-    return statute[:6].upper()
+    return statute[:6]
+
+
+def _inchoate_target(name: str, targets: List[str]) -> bool:
+    lowered = name.lower()
+    is_inchoate = any(marker in lowered for marker in INCHOATE_NAME_MARKERS)
+    return is_inchoate and any(target in lowered for target in targets)
 
 
 def is_registerable_sex_offense(statute: str, name: str = "") -> bool:
     """ORS 163A.005(5). Covers the enumerated crimes and, per (z) and (bb), attempts and
-    conspiracies to commit them.
+    conspiracies to commit them, which are read off the charge name.
 
     Burglary with intent to commit a listed offense, paragraph (aa), is not detectable:
     OECI records the burglary statute without the underlying intent.
     """
     if _section(statute) in REGISTERABLE_SEX_OFFENSE_STATUTES:
         return True
-    lowered = name.lower()
-    is_inchoate = any(marker in lowered for marker in ATTEMPT_NAME_MARKERS + CONSPIRACY_NAME_MARKERS)
-    if is_inchoate:
-        return any(
-            crime in lowered
-            for crime in ["rape", "sodomy", "sexual penetration", "sexual abuse", "sexual conduct", "prostitution"]
-        )
-    return False
+    return _inchoate_target(name, INCHOATE_TARGETS + CONDITIONAL_INCHOATE_TARGETS)
 
 
-def is_conditionally_registerable(statute: str) -> bool:
-    """True when registration turns on a fact OECI does not record."""
-    return _section(statute) in CONDITIONALLY_REGISTERABLE_STATUTES
+def is_conditionally_registerable(statute: str, name: str = "") -> bool:
+    """True when registration turns on a fact OECI does not record, for the crime itself or
+    for an attempt or conspiracy to commit it."""
+    if _section(statute) in CONDITIONALLY_REGISTERABLE_STATUTES:
+        return True
+    return _inchoate_target(name, CONDITIONAL_INCHOATE_TARGETS)

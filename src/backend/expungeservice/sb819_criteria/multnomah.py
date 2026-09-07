@@ -11,7 +11,10 @@ pass here and are reported for transparency.
 
 from typing import List, Optional
 
-from expungeservice.charge_classifier import ChargeClassifier
+from expungeservice.charge_creator import ChargeCreator
+from expungeservice.models.charge import EditStatus
+from expungeservice.models.charge_types.person_felony import PersonFelonyClassB
+from expungeservice.models.charge_types.sex_crimes import SexCrime
 from expungeservice.models.sb819 import (
     SB819Criterion,
     SB819Scope,
@@ -35,6 +38,30 @@ AGGRAVATED_MURDER_STATUTE = "163095"
 
 # The disjunction on page 4: Excessive Sentencing requires any one of these five.
 SENTENCE_ALTERNATIVES = "excessive-sentencing-alternatives"
+
+# OAR 213-003-0001(14), the person felony definition, as one set of statute sections.
+# PersonFelonyClassB.statutes carries the list, except for the crimes the charge classifier
+# files under other charge types before it reaches that list: the sex crimes, three marijuana
+# offenses, inmate weapon possession, and the felony traffic offenses. Those are named here so
+# that a person crime is a person crime whatever its expungement charge type.
+PERSON_FELONY_SECTIONS = frozenset(
+    PersonFelonyClassB.statutes
+    + SexCrime.statutes
+    + [
+        "163355",  # Rape III
+        "163385",  # Sodomy III
+        "166275",  # Inmate in Possession of Weapon
+        "475B359",  # Arson Incident to Manufacture of Cannabinoid Extract I
+        "475B367",  # Causing Another Person to Ingest Marijuana
+        "475B371",  # Administration of Marijuana to Another Person Under 18
+        "811705",  # Hit and Run Vehicle (Injury)
+    ]
+) - {"163467", "163687"}  # Private indecency and Encouraging Child Sexual Abuse III are not person felonies
+# The OAR names these by subsection, so only a charge recorded with that subsection matches.
+PERSON_FELONY_SUBSECTIONS = tuple(PersonFelonyClassB.statutes_with_subsection) + (
+    "1631603",  # Felony Assault IV, ORS 163.160(3)
+    "8130105",  # Felony Driving Under the Influence of Intoxicants, ORS 813.010(5)
+)
 
 
 # ---------------------------------------------------------------------------
@@ -288,6 +315,25 @@ def _is_aggravated_murder(charge) -> bool:
     return charge.statute.upper().startswith(AGGRAVATED_MURDER_STATUTE) or "aggravated murder" in charge.name.lower()
 
 
+# The birth year OeciCase.empty gives a case a volunteer adds by hand, until it is edited.
+PLACEHOLDER_BIRTH_YEAR = 1900
+
+
+def _record_birth_year(record) -> Optional[int]:
+    """The applicant's birth year, which is a fact about the person and not about any case.
+
+    Read across every case so that two convictions on one record cannot disagree about the
+    applicant's age. Where the cases carry different years the record may hold more than one
+    person, and the year is treated as unknown.
+    """
+    years = {
+        case.summary.birth_year
+        for case in record.cases
+        if case.summary.birth_year and case.summary.birth_year != PLACEHOLDER_BIRTH_YEAR
+    }
+    return years.pop() if len(years) == 1 else None
+
+
 def _estimated_age(birth_year: Optional[int], on_date) -> Optional[int]:
     """Year-granularity age. OECI carries a birth year, not a birth date."""
     if not birth_year:
@@ -299,15 +345,22 @@ def _felony_sex_crime_convictions(record) -> List:
     return [
         charge
         for charge in record.charges
-        if charge.convicted()
+        if charge.edit_status != EditStatus.DELETE
+        and charge.convicted()
         and _is_felony_level(charge.level)
         and is_registerable_sex_offense(charge.statute, charge.name)
     ]
 
 
 def _is_person_crime(charge) -> bool:
-    # The OAR 213-003-0001 person felony list, the same one the charge classifier consults.
-    return ChargeClassifier._person_felony(charge.statute)
+    """The conviction's statute is on the OAR 213-003-0001 person felony list.
+
+    Matched by section, so a statute OECI records with a subsection, such as 164.405(1)(a),
+    is still the person crime 164.405. A statute the OAR names by subsection matches only
+    when the charge carries that subsection.
+    """
+    section = ChargeCreator._set_section(charge.statute) or charge.statute  # ORS 97.981 is five digits
+    return section in PERSON_FELONY_SECTIONS or charge.statute.startswith(PERSON_FELONY_SUBSECTIONS)
 
 
 # ---------------------------------------------------------------------------
@@ -454,8 +507,8 @@ def excessive_sentencing(charge, case, record) -> List[SB819CriterionResult]:
         ),
         _not_repeat_sex_offender(record),
         _juvenile_transfer(),
-        _under_18_at_offense(charge, case),
-        _over_60_or_ill(case),
+        _under_18_at_offense(charge, record),
+        _over_60_or_ill(record),
         _non_person_over_10_years(charge),
         _person_over_16_years(charge),
     ]
@@ -504,13 +557,13 @@ def _juvenile_transfer() -> SB819CriterionResult:
     )
 
 
-def _under_18_at_offense(charge, case) -> SB819CriterionResult:
-    age = _estimated_age(case.summary.birth_year, charge.date)
+def _under_18_at_offense(charge, record) -> SB819CriterionResult:
+    age = _estimated_age(_record_birth_year(record), charge.date)
     if age is None:
         return SB819CriterionResult(
             criterion=UNDER_18_AT_OFFENSE,
             outcome=SB819Outcome.UNKNOWN,
-            explanation="No birth year is recorded for this case, so age at the time of the offense is unknown.",
+            explanation="No birth year is recorded for the applicant, so age at the time of the offense is unknown.",
             question=SB819Question(
                 text="Was the applicant under 18 when this crime was committed?",
                 if_yes=SB819Status.POSSIBLY_ELIGIBLE,
@@ -545,8 +598,8 @@ def _under_18_at_offense(charge, case) -> SB819CriterionResult:
     )
 
 
-def _over_60_or_ill(case) -> SB819CriterionResult:
-    age = _estimated_age(case.summary.birth_year, date_class.today())
+def _over_60_or_ill(record) -> SB819CriterionResult:
+    age = _estimated_age(_record_birth_year(record), date_class.today())
     if age is not None and age >= 62:
         return SB819CriterionResult(
             criterion=OVER_60_OR_ILL,
@@ -653,7 +706,7 @@ def _sentence_completed() -> SB819CriterionResult:
 
 def _not_registerable_sex_offense(charge) -> SB819CriterionResult:
     if is_registerable_sex_offense(charge.statute, charge.name):
-        if is_conditionally_registerable(charge.statute):
+        if is_conditionally_registerable(charge.statute, charge.name):
             return SB819CriterionResult(
                 criterion=NOT_REGISTERABLE_SEX_OFFENSE,
                 outcome=SB819Outcome.UNKNOWN,

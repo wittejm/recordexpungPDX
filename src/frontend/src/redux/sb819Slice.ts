@@ -1,6 +1,13 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { RootState } from "./store";
+import { RECORD_LOADING } from "./search/types";
 
+/**
+ * Whether the SB-819 view stands in for the search summary.
+ *
+ * A new search puts the summary back, since the view belongs to the record it was opened
+ * on and the next record may have nothing for it to show.
+ */
 interface SB819State {
   isViewing: boolean;
 }
@@ -19,6 +26,9 @@ export const sb819Slice = createSlice({
     hideSB819View: (state) => {
       state.isViewing = false;
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(RECORD_LOADING, () => initialState);
   },
 });
 

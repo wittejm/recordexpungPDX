@@ -33,11 +33,24 @@ class SB819Analyzer:
     def _in_scope(charge) -> bool:
         """Only convictions expungement cannot reach.
 
+        SB 819 sets aside convictions, so a charge has to be one. Expungement ineligibility
+        alone does not make it one: a dismissed traffic violation is ineligible for expungement
+        too, and would otherwise be reported as an ineligible conviction.
+
+        Traffic violations and parking tickets are left out even when convicted. The record
+        summary hides them, so the summary's count of ineligible charges is what the view is
+        opened from, and a page of speeding tickets reported as ineligible convictions would
+        tell a volunteer nothing.
+
         The JIU criterion is that the conviction is not expungeable under ORS 137.225, which
         is a categorical test. A charge that becomes eligible on a future date is expungeable
         under 137.225 and belongs on that route instead, so only INELIGIBLE qualifies.
         """
         if charge.edit_status == EditStatus.DELETE:
+            return False
+        if not charge.convicted():
+            return False
+        if charge.charge_type.hidden_in_record_summary(charge.disposition):
             return False
         charge_eligibility = charge.expungement_result.charge_eligibility
         if not charge_eligibility:

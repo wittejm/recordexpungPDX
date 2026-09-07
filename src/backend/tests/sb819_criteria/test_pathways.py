@@ -62,6 +62,26 @@ def test_a_felony_sex_crime_conviction_leaves_the_recidivist_statutes_open():
     assert "[2]" in result.explanation
 
 
+def test_a_deleted_sex_crime_conviction_no_longer_counts_against_the_record():
+    """A volunteer who deletes a mis-attributed charge takes it out of every criterion."""
+    from dataclasses import replace
+
+    from expungeservice.models.charge import EditStatus
+
+    sex_crime = SB819Factory.charge(
+        case_number="2", name="Rape in the Second Degree", statute="163.365", level="Felony Class B"
+    )
+    robbery = SB819Factory.charge(case_number="1")
+    record = SB819Factory.record(
+        [
+            SB819Factory.case([robbery], case_number="1"),
+            SB819Factory.case([replace(sex_crime, edit_status=EditStatus.DELETE)], case_number="2"),
+        ]
+    )
+    results = by_name(multnomah.excessive_sentencing(robbery, record.cases[0], record))
+    assert results[multnomah.NOT_REPEAT_SEX_OFFENDER.name].outcome is SB819Outcome.PASSED
+
+
 def test_a_crime_committed_well_before_18_passes_the_age_alternative():
     offense_date = date_class.today() - relativedelta(years=20)
     record, case, charge = SB819Factory.single_charge_record(date=offense_date, birth_year=str(offense_date.year - 15))
@@ -90,6 +110,40 @@ def test_a_clearly_over_60_applicant_passes_the_age_or_illness_alternative():
     assert results[multnomah.OVER_60_OR_ILL.name].outcome is SB819Outcome.PASSED
 
 
+def test_the_applicant_age_is_read_across_the_record():
+    """One applicant, one age: a case with no birth year borrows it from the others, and a
+    case a volunteer added by hand carries a placeholder year that is never an age."""
+    this_year = date_class.today().year
+    dated = SB819Factory.charge(case_number="1")
+    undated = SB819Factory.charge(case_number="2")
+    added = SB819Factory.charge(case_number="3")
+    record = SB819Factory.record(
+        [
+            SB819Factory.case([dated], case_number="1", birth_year=str(this_year - 70)),
+            SB819Factory.case([undated], case_number="2", birth_year=None),
+            SB819Factory.case([added], case_number="3", birth_year=str(multnomah.PLACEHOLDER_BIRTH_YEAR)),
+        ]
+    )
+    for charge, case in zip([dated, undated, added], record.cases):
+        results = by_name(multnomah.excessive_sentencing(charge, case, record))
+        assert results[multnomah.OVER_60_OR_ILL.name].outcome is SB819Outcome.PASSED, case.summary.case_number
+
+
+def test_cases_that_disagree_about_the_birth_year_leave_age_unknown():
+    this_year = date_class.today().year
+    first = SB819Factory.charge(case_number="1")
+    second = SB819Factory.charge(case_number="2")
+    record = SB819Factory.record(
+        [
+            SB819Factory.case([first], case_number="1", birth_year=str(this_year - 70)),
+            SB819Factory.case([second], case_number="2", birth_year=str(this_year - 30)),
+        ]
+    )
+    results = by_name(multnomah.excessive_sentencing(first, record.cases[0], record))
+    assert results[multnomah.OVER_60_OR_ILL.name].outcome is SB819Outcome.UNKNOWN
+    assert results[multnomah.UNDER_18_AT_OFFENSE.name].outcome is SB819Outcome.UNKNOWN
+
+
 def test_a_younger_applicant_may_still_qualify_through_illness():
     """Age alone never fails this alternative; an applicant under 60 may be ill or on hospice."""
     record, case, charge = SB819Factory.single_charge_record(birth_year=str(date_class.today().year - 30))
@@ -107,12 +161,51 @@ def test_a_person_crime_rules_out_the_non_person_sentence_alternative():
 
 
 def test_a_non_person_crime_rules_out_the_person_sentence_alternative():
-    record, case, charge = SB819Factory.single_charge_record(
-        name="Possession of Weapon by Prison Inmate", statute="166.275", level="Felony Class A"
-    )
+    record, case, charge = SB819Factory.single_charge_record(name="Racketeering", statute="166.720", level="Felony Class A")
     results = by_name(multnomah.excessive_sentencing(charge, case, record))
     assert results[multnomah.PERSON_OVER_16_YEARS.name].outcome is SB819Outcome.FAILED
     assert results[multnomah.NON_PERSON_OVER_10_YEARS.name].outcome is SB819Outcome.UNKNOWN
+
+
+def test_person_crimes_the_classifier_files_elsewhere_are_still_person_crimes():
+    """The OAR names sex crimes, inmate weapon possession and felony DUII as person felonies;
+    the charge classifier reaches them under other charge types first."""
+    for name, statute in [
+        ("Rape in the Second Degree", "163.365"),
+        ("Possession of Weapon by Prison Inmate", "166.275"),
+        ("Driving Under the Influence of Intoxicants", "813.010(5)"),
+    ]:
+        record, case, charge = SB819Factory.single_charge_record(name=name, statute=statute, level="Felony Class B")
+        results = by_name(multnomah.excessive_sentencing(charge, case, record))
+        assert results[multnomah.NON_PERSON_OVER_10_YEARS.name].outcome is SB819Outcome.FAILED, name
+        assert results[multnomah.PERSON_OVER_16_YEARS.name].outcome is SB819Outcome.UNKNOWN, name
+
+
+def test_a_person_crime_recorded_with_a_subsection_is_still_a_person_crime():
+    record, case, charge = SB819Factory.single_charge_record(
+        name="Robbery in the Second Degree", statute="164.405(1)(a)", level="Felony Class B"
+    )
+    results = by_name(multnomah.excessive_sentencing(charge, case, record))
+    assert results[multnomah.NON_PERSON_OVER_10_YEARS.name].outcome is SB819Outcome.FAILED
+
+
+def test_the_person_felony_sections_are_the_whole_oar_list():
+    """PersonFelonyClassB comments out the entries it files under other charge types. The
+    SB-819 set has to be that file's list with the comments restored, nothing more."""
+    import re
+    from pathlib import Path
+
+    from expungeservice.models.charge_types import person_felony
+
+    source = Path(person_felony.__file__).read_text()
+    listed = set(re.findall(r'^\s*#?\s*"([0-9A-Z]+)",', source, flags=re.M))
+    from expungeservice.charge_creator import ChargeCreator
+
+    def is_bare_section(statute):
+        return ChargeCreator._set_section(statute) in (statute, "")
+
+    assert multnomah.PERSON_FELONY_SECTIONS == {s for s in listed if is_bare_section(s)}
+    assert set(multnomah.PERSON_FELONY_SUBSECTIONS) == {s for s in listed if not is_bare_section(s)}
 
 
 def test_one_failed_alternative_does_not_disqualify_the_pathway():

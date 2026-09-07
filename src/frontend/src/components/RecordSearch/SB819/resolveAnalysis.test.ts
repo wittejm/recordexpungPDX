@@ -13,6 +13,7 @@ import fs from "fs";
 import path from "path";
 import {
   applyAnswer,
+  disqualifyingCriteria,
   resolveChargeStatus,
   resolveOutcomes,
 } from "./resolveAnalysis";
@@ -99,6 +100,13 @@ function runScenario(scenario: Scenario) {
     ]);
     return status;
   });
+
+  if (scenario.expect.disqualifying) {
+    const barred = scenario.pathways.flatMap((pathway) =>
+      disqualifyingCriteria(resolve(pathway.criteria)).map((c) => c.key)
+    );
+    expect(barred).toEqual(scenario.expect.disqualifying);
+  }
 
   expect(resolveChargeStatus(mainStatus, statuses)).toBe(
     scenario.expect.charge

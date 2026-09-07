@@ -25,7 +25,7 @@ interface Props {
  * The questions a panel is not asking yet, grouped by the question they wait on.
  *
  * The count tells the volunteer that more follows and which answer brings it, so the form
- * grows as the client's circumstances come out rather than shrinking as they are ruled out.
+ * grows as the client's circumstances come out.
  */
 export default function SB819Held({ held }: Props) {
   if (held.length === 0) return null;

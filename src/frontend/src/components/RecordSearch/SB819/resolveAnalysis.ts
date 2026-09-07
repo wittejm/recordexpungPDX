@@ -177,7 +177,7 @@ export default function resolveAnalysis(
 }
 
 /**
- * The failed criteria that actually disqualify, in the order they were evaluated.
+ * The failed criteria that bar a pathway, in the order they were evaluated.
  *
  * A criterion in a disjunction group only disqualifies when every alternative in that group
  * failed. One failed alternative among several is not a bar, and naming it as one would

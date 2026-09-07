@@ -1,8 +1,8 @@
 """Renders a county's SB-819 criteria as a numbered logic sheet.
 
-The sheet is what a lawyer audits instead of the code. It is generated rather than written
-so that it cannot describe rules the software does not apply: a test regenerates it and
-fails if the checked-in copy has fallen behind.
+The sheet is what a lawyer audits instead of the code. It is generated from the criteria,
+so it cannot describe a rule the software does not apply or omit one it does; tests hold
+every criterion to appearing on it exactly once.
 
 Everything except HOW_DETERMINED is read from the criteria themselves. That mapping records
 the operational test for each criterion, which lives in the functions rather than the
@@ -25,7 +25,9 @@ HOW_DETERMINED: Dict[str, str] = {
     "not-expungeable": (
         "RecordSponge's own analysis of ORS 137.225 and 137.226 returns Ineligible for this "
         "conviction. A conviction that becomes eligible on a future date is not treated as "
-        "ineligible, because expungement remains the required route for it."
+        "ineligible, because expungement remains the required route for it. Only convictions "
+        "are considered: a dismissed charge that expungement cannot reach, such as a dismissed "
+        "traffic violation, is not a conviction and is left out."
     ),
     "sentenced-as-felony": (
         "The charge level recorded in OECI contains the word felony, which includes Felony "
@@ -44,40 +46,47 @@ HOW_DETERMINED: Dict[str, str] = {
     "five-years-served": "Asked of the client. OECI does not record sentence length or time served.",
     "not-global-plea": "Asked of the client. OECI does not record the terms of a plea agreement.",
     "not-repeat-sex-offender": (
-        "Passes where the record contains no felony sex crime conviction, since both statutes "
-        "reach sex crimes only and both require prior convictions. Asked of the client where "
-        "the record does contain one, because priors cannot be counted from this record alone."
+        "Passes where the record, across every county, contains no felony conviction for a sex "
+        "crime listed in ORS 163A.005(5), since both statutes reach sex crimes only and both "
+        "require prior convictions. Asked of the client where the record does contain one, "
+        "because priors cannot be counted from this record alone."
     ),
     "juvenile-transfer": "Asked of the client.",
     "under-18-at-offense": (
-        "The birth year recorded on the case, subtracted from the year of the offence. Under "
-        "18 passes; 19 or more fails; exactly 18 is asked of the client, because OECI records "
-        "a birth year and not a birth date, so the offence may fall either side of the "
-        "birthday. Asked of the client where no birth year is recorded."
+        "The applicant's birth year, subtracted from the year of the date OECI lists against "
+        "the charge. Under 18 passes; 19 or more fails; exactly 18 is asked of the client, "
+        "because OECI records a birth year and not a birth date, so the offence may fall either "
+        "side of the birthday. The birth year is read across every case on the record, and is "
+        "treated as unknown, so that the question is asked, where no case records one or the "
+        "cases disagree."
     ),
     "over-60-or-ill": (
-        "Passes where the birth year puts the applicant clearly past 60. Otherwise asked of "
-        "the client, since age alone cannot fail this criterion: an applicant under 60 may "
-        "still be ill or on hospice care, and OECI records neither."
+        "Passes where the applicant's birth year, read across the record as for 3.2.5(b), puts "
+        "the applicant clearly past 60. Otherwise asked of the client, since age alone cannot "
+        "fail this criterion: an applicant under 60 may still be ill or on hospice care, and "
+        "OECI records neither."
     ),
     "non-person-over-10-years": (
-        "Fails where the conviction is a person crime under the list at OAR 213-003-0001, "
-        "since the threshold then does not apply. Otherwise asked of the client, as OECI does "
-        "not record sentence length."
+        "Fails where the conviction's statute is on the person felony list at OAR 213-003-0001(14), "
+        "which includes the sex crimes, inmate weapon possession, and the felony traffic offences "
+        "it names, since the threshold then does not apply. Otherwise asked of the client, as OECI "
+        "does not record sentence length."
     ),
     "person-over-16-years": (
-        "Fails where the conviction is not a person crime under the list at OAR 213-003-0001. "
-        "Otherwise asked of the client, as OECI does not record sentence length."
+        "Fails where the conviction's statute is not on the person felony list at OAR "
+        "213-003-0001(14). Otherwise asked of the client, as OECI does not record sentence length."
     ),
     "sentence-completed": (
         "Asked of the client. OECI records no post-prison supervision or probation end date, "
         "and a case status of Closed describes the court case rather than supervision."
     ),
     "not-registerable-sex-offense": (
-        "Fails where the statute is a sex crime under ORS 163A.005(5), including an attempt or "
-        "a conspiracy to commit one. Asked of the client where the statute requires reporting "
-        "only in circumstances OECI does not record, such as the age of the victim or a court "
-        "designation."
+        "Fails where the statute section is one listed as a sex crime in ORS 163A.005(5)(a) to "
+        "(y), or where the charge name records an attempt or conspiracy to commit one of them, "
+        "per paragraphs (z) and (bb). Burglary with intent to commit one, paragraph (aa), cannot "
+        "be detected, because OECI records the burglary statute without the intent. Asked of the "
+        "client where the crime, or the crime attempted, requires reporting only in circumstances "
+        "OECI does not record, such as the age of the victim or a court designation."
     ),
     "no-domestic-violence": (
         "Asked of the client. OECI does not record whether a conviction involved domestic " "violence."
@@ -199,11 +208,12 @@ def build(module, questions_by_key: Dict[str, object]) -> Dict:
         {
             "number": "1",
             "title": "Which convictions are screened",
-            "rule": "Two of the four main criteria on page 3 are applied as a filter rather "
-            "than as a verdict. A conviction is screened if and only if 1.1 AND 1.2; one "
-            "failing either is left out of the analysis rather than reported ineligible, "
-            "since in the first case no criteria have been published for it, and in the "
-            "second expungement remains the route open to it.",
+            "rule": "Only convictions are considered, and traffic violations and parking tickets "
+            "are left out as the search summary leaves them out. Two of the four main criteria on page 3 "
+            "are applied as a filter rather than as a verdict. A conviction is screened if and "
+            "only if 1.1 AND 1.2; one failing either is left out of the analysis rather than "
+            "reported ineligible, since in the first case no criteria have been published for "
+            "it, and in the second expungement remains the route open to it.",
             "blocks": blocks,
         }
     )

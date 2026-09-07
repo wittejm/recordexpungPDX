@@ -80,8 +80,8 @@ export function revealingAnswer(
  * The distinct questions at a given scope, in the order the criteria are evaluated.
  *
  * A record-scope question appears identically on every charge, so it is collected once.
- * Questions whose pathway is already ruled out everywhere are marked moot rather than
- * dropped, so the reasoning stays visible without demanding an answer that changes nothing.
+ * Questions whose pathway is already ruled out everywhere are kept and marked moot, so the
+ * reasoning stays visible without demanding an answer that changes nothing.
  * A question held back on every charge it appears on carries the question holding it; one
  * that is live on any charge is not held at all.
  */
