@@ -81,6 +81,15 @@ class DemoInfo extends React.Component {
         ],
         dateOfBirth: "2/2/1985",
       },
+      {
+        name: "SB 819",
+        firstName: "SB",
+        lastName: "819",
+        description: [
+          "SB 819 lets a District Attorney petition jointly with a client to reconsider a conviction that expungement cannot reach. Each county's DA publishes limiting criteria deciding which applications the office will screen at all, and this record demonstrates the Multnomah County criteria.",
+          "Where a record has ineligible charges, the Ineligible heading in the summary panel carries a badge that opens the SB-819 Eligibility Analysis. That view covers only the ineligible Multnomah convictions, sorts them by whether the criteria rule them out, and shows the criteria behind each result along with the questions to ask the client.",
+        ],
+      },
     ];
     return (
       <article className="lh-copy">
@@ -96,11 +105,7 @@ class DemoInfo extends React.Component {
             You can also "Enable Editing" below the search panel to build and
             evaluate different examples. If you are looking to evaluate your own
             record for expungement eligibility, we urge you to contact{" "}
-            <Link
-              to="/#find-a-partner"
-              smooth
-              className="link bb hover-blue"
-            >
+            <Link to="/#find-a-partner" smooth className="link bb hover-blue">
               {" "}
               one of our partners{" "}
             </Link>

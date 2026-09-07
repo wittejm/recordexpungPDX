@@ -1,4 +1,5 @@
 import React from "react";
+import SB819Badge from "../../SB819/SB819Badge";
 
 interface ChargeProps {
   id: string;
@@ -79,6 +80,7 @@ function EligibilityGroup({
       <div className={labelColor + " bb b--light-gray lh-copy pb1"}>
         <span className="fw7 mb2">{eligibility}</span>{" "}
         {numCharges > 0 && `(${numCharges})`}
+        {eligibility === "Ineligible" && <SB819Badge />}
         {eligibility === "Needs More Analysis" && (
           <p className="f6 fw5">
             These charges need clarification below before an accurate analysis

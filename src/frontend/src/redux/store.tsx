@@ -9,6 +9,8 @@ import summarySlice from "./summarySlice";
 import editingSlice from "./editingSlice";
 import statsSlice from "./statsSlice";
 import searchFormSlice from "./searchFormSlice";
+import sb819Slice from "./sb819Slice";
+import sb819AnswersSlice from "./sb819AnswersSlice";
 
 export const clearAllData = createAction("CLEAR_ALL_DATA");
 
@@ -19,6 +21,8 @@ const appReducer = combineReducers({
   editing: editingSlice,
   stats: statsSlice,
   searchForm: searchFormSlice,
+  sb819: sb819Slice,
+  sb819Answers: sb819AnswersSlice,
 });
 
 // https://stackoverflow.com/questions/35622588/how-to-reset-the-state-of-a-redux-store
