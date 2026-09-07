@@ -1,0 +1,4 @@
+- Fetch docs from Michael's email and Cody's and my emails
+- Make clear what step one is
+- Do step one: the first pass of rules for Multco
+- Implement 
