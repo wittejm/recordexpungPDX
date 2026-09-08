@@ -99,7 +99,7 @@ def test_record_summarizer_multiple_cases():
     )
     expunger_result = Expunger.run(record)
 
-    merged_record = RecordMerger.merge([record], [expunger_result], [])
+    merged_record = RecordMerger.merge(record, record.charges, [expunger_result], [])
     record_summary = RecordSummarizer.summarize(merged_record, {})
 
     assert record_summary.total_fines_due == 1000.00

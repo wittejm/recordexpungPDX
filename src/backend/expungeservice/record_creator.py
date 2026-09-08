@@ -9,7 +9,7 @@ import requests
 from expungeservice.charge_creator import ChargeCreator
 from expungeservice.crawler.crawler import Crawler, InvalidOECIUsernamePassword, OECIUnavailable
 from expungeservice.expunger import ErrorChecker, Expunger
-from expungeservice.models.ambiguous import AmbiguousCharge, AmbiguousCase, AmbiguousRecord
+from expungeservice.models.ambiguous import AmbiguousCharge, AmbiguousCase
 from expungeservice.models.case import Case, OeciCase
 from expungeservice.models.charge import Charge, EditStatus
 from expungeservice.record_editor import RecordEditor
@@ -49,12 +49,12 @@ class RecordCreator:
 
             ambiguous_cases, questions = RecordCreator._build_ambiguous_cases(user_edited_search_results, new_charges)
 
-            ambiguous_record, overflow_error = RecordCreator._build_ambiguous_record(ambiguous_cases)
+            overflow_error = RecordCreator._check_ambiguous_record_size(ambiguous_cases)
             if overflow_error:
                 return Record((), tuple(overflow_error)), {}
             else:
                 charge_ids_with_question = [question.ambiguous_charge_id for question in questions]
-                record = RecordCreator._analyze_ambiguous_record(ambiguous_record, charge_ids_with_question, today)
+                record = RecordCreator._analyze_ambiguous_record(ambiguous_cases, charge_ids_with_question, today)
                 questions_as_dict = dict(list(map(lambda q: (q.ambiguous_charge_id, q), questions)))
                 return record, questions_as_dict
 
@@ -109,33 +109,34 @@ class RecordCreator:
         return ambiguous_cases, questions_accumulator
 
     @staticmethod
-    def _build_ambiguous_record(ambiguous_cases: List[AmbiguousCase]) -> Tuple[AmbiguousRecord, List[str]]:
+    def _check_ambiguous_record_size(ambiguous_cases: List[AmbiguousCase]) -> List[str]:
         ambiguous_record_length = reduce(
             operator.mul, [len(ambiguous_case) for ambiguous_case in ambiguous_cases], 1
         )  # TODO: Replace with math.prod([len(ambiguous_case) for ambiguous_case in ambiguous_cases]) in Python 3.8
         MAX_EXPUNGER_RUNS = 2048
         if ambiguous_record_length > MAX_EXPUNGER_RUNS:
             error_message = f"The resulting record found was too large to analyze (record with {ambiguous_record_length} combinations of ambiguities exceeds the processable {MAX_EXPUNGER_RUNS} combination of ambiguities). The record most likely has open cases, and thus does not have any charges eligible to be expunged."
-            return [], [error_message]
+            return [error_message]
         else:
-            ambiguous_record: AmbiguousRecord = []
-            for cases in product(*ambiguous_cases):
-                ambiguous_record.append(Record(tuple(cases)))
-            return ambiguous_record, []
+            return []
 
     @staticmethod
     def _analyze_ambiguous_record(
-        ambiguous_record: AmbiguousRecord, charge_ids_with_question: List[str], today: date_class
-    ):
-        charge_id_to_time_eligibilities = []
-        ambiguous_record_with_errors = []
-        for record in ambiguous_record:
-            charge_id_to_time_eligibility = Expunger.run(record, today)
-            charge_id_to_time_eligibilities.append(charge_id_to_time_eligibility)
-            ambiguous_record_with_errors.append(record)
-        record = RecordMerger.merge(
-            ambiguous_record_with_errors, charge_id_to_time_eligibilities, charge_ids_with_question
+        ambiguous_cases: List[AmbiguousCase], charge_ids_with_question: List[str], today: date_class
+    ) -> Record:
+        """
+        Runs the expunger over every combination of ambiguous cases. A large search has
+        thousands of combinations, and each expunger result holds a TimeEligibility per
+        charge, so the results are generated one at a time for the merge to fold as it
+        goes. The merge needs the first combination as the skeleton of the merged record,
+        and the distinct charge variants, which live in the ambiguous cases themselves.
+        """
+        first_record = Record(tuple(ambiguous_case[0] for ambiguous_case in ambiguous_cases))
+        charge_variants = (
+            charge for ambiguous_case in ambiguous_cases for case in ambiguous_case for charge in case.charges
         )
+        expunger_results = (Expunger.run(Record(tuple(cases)), today) for cases in product(*ambiguous_cases))
+        record = RecordMerger.merge(first_record, charge_variants, expunger_results, charge_ids_with_question)
         sorted_record = RecordCreator.sort_record(record)
         return replace(sorted_record, errors=tuple(ErrorChecker.check(sorted_record)))
 

@@ -63,7 +63,7 @@ def assert_pdf_values(pdf: PDF, expected: Dict[str, str]):
 def test_normal_conviction_uses_multnomah_conviction_form():
     record = CrawlerFactory.create(JohnDoe.SINGLE_CASE_RECORD, {"CASEJD1": CaseDetails.CASEJD74})
     expunger_result = Expunger.run(record)
-    merged_record = RecordMerger.merge([record], [expunger_result], [])
+    merged_record = RecordMerger.merge(record, record.charges, [expunger_result], [])
     
     record_summary = RecordSummarizer.summarize(merged_record, {})
 

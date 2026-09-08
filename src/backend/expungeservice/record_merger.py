@@ -1,10 +1,9 @@
 from dataclasses import replace
 from expungeservice.util import DateWithFuture as date
-from typing import List, Dict, Optional
+from typing import Iterable, List, Dict, Optional, Set
 
-from more_itertools import flatten, unique_everseen
+from more_itertools import unique_everseen
 
-from expungeservice.models.ambiguous import AmbiguousRecord
 from expungeservice.models.case import Case
 from expungeservice.models.charge import Charge
 from expungeservice.models.charge_types.sex_crimes import RomeoAndJulietNMASexCrime
@@ -22,20 +21,27 @@ import collections
 
 
 class RecordMerger:
-    # We assume all records contain the same errors
     @staticmethod
     def merge(
-        ambiguous_record: AmbiguousRecord,
-        ambiguous_charge_id_to_time_eligibility_list: List[Dict[str, TimeEligibility]],
+        record: Record,
+        charge_variants: Iterable[Charge],
+        expunger_results: Iterable[Dict[str, TimeEligibility]],
         charge_ids_with_question: List[str],
     ) -> Record:
+        """
+        record is one combination of the ambiguous record; its cases and charges are the
+        skeleton of the merged record. charge_variants is every Charge that appears in any
+        combination, in the order the combinations first reach them; a charge object may
+        appear more than once. expunger_results is the expunger's result for every
+        combination; it is consumed once and folded down to the distinct time eligibilities
+        per charge, so a generator keeps memory flat for thousands of combinations.
+        """
         ambiguous_charge_id_to_time_eligibilities: Dict[str, List[TimeEligibility]] = collections.defaultdict(list)
-        for charge_id_to_time_eligibility in ambiguous_charge_id_to_time_eligibility_list:
+        for charge_id_to_time_eligibility in expunger_results:
             for k, v in charge_id_to_time_eligibility.items():
                 if v not in ambiguous_charge_id_to_time_eligibilities[k]:
                     ambiguous_charge_id_to_time_eligibilities[k].append(v)
-        charges = list(flatten([record.charges for record in ambiguous_record]))
-        record = ambiguous_record[0]
+        ambiguous_charge_id_to_charges = RecordMerger._group_charge_variants(charge_variants)
         new_case_list: List[Case] = []
         for case in record.cases:
             new_charges = []
@@ -44,7 +50,7 @@ class RecordMerger:
                 sorted_time_eligibility = (
                     sorted(time_eligibilities, key=lambda e: e.date_will_be_eligible) if time_eligibilities else None
                 )
-                same_charges = list(filter(lambda c: c.ambiguous_charge_id == charge.ambiguous_charge_id, charges))
+                same_charges = ambiguous_charge_id_to_charges[charge.ambiguous_charge_id]
                 romeo_and_juliet_exception = RecordMerger._is_romeo_and_juliet_exception(same_charges)
                 merged_type_eligibility = RecordMerger.merge_type_eligibilities(same_charges)
                 merged_time_eligibility = RecordMerger.merge_time_eligibilities(sorted_time_eligibility)
@@ -85,6 +91,16 @@ class RecordMerger:
             new_case = replace(case, charges=tuple(new_charges))
             new_case_list.append(new_case)
         return replace(record, cases=tuple(new_case_list))
+
+    @staticmethod
+    def _group_charge_variants(charge_variants: Iterable[Charge]) -> Dict[str, List[Charge]]:
+        grouped: Dict[str, List[Charge]] = collections.defaultdict(list)
+        seen: Set[int] = set()
+        for charge in charge_variants:
+            if id(charge) not in seen:
+                seen.add(id(charge))
+                grouped[charge.ambiguous_charge_id].append(charge)
+        return grouped
 
     @staticmethod
     def merge_type_eligibilities(same_charges: List[Charge]) -> TypeEligibility:
