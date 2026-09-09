@@ -20,6 +20,20 @@ from expungeservice.models.disposition import DispositionStatus, DispositionCrea
 from expungeservice.util import DateWithFuture as date_class, LRUCache
 
 
+MAX_EXPUNGER_RUNS = 2048
+
+
+class AmbiguousRecordTooLarge(Exception):
+    def __init__(
+        self,
+        combinations: int,
+        cause: str = "The record most likely has open cases, and thus does not have any charges eligible to be expunged.",
+    ):
+        super().__init__(
+            f"The resulting record found was too large to analyze (record with {combinations} combinations of ambiguities exceeds the processable {MAX_EXPUNGER_RUNS} combination of ambiguities). {cause}"
+        )
+
+
 class RecordCreator:
     @staticmethod
     def build_record(
@@ -47,7 +61,12 @@ class RecordCreator:
                 cases_with_unique_case_number, edits
             )
 
-            ambiguous_cases, questions = RecordCreator._build_ambiguous_cases(user_edited_search_results, new_charges)
+            try:
+                ambiguous_cases, questions = RecordCreator._build_ambiguous_cases(
+                    user_edited_search_results, new_charges
+                )
+            except AmbiguousRecordTooLarge as e:
+                return Record((), (str(e),)), {}
 
             overflow_error = RecordCreator._check_ambiguous_record_size(ambiguous_cases)
             if overflow_error:
@@ -113,10 +132,8 @@ class RecordCreator:
         ambiguous_record_length = reduce(
             operator.mul, [len(ambiguous_case) for ambiguous_case in ambiguous_cases], 1
         )  # TODO: Replace with math.prod([len(ambiguous_case) for ambiguous_case in ambiguous_cases]) in Python 3.8
-        MAX_EXPUNGER_RUNS = 2048
         if ambiguous_record_length > MAX_EXPUNGER_RUNS:
-            error_message = f"The resulting record found was too large to analyze (record with {ambiguous_record_length} combinations of ambiguities exceeds the processable {MAX_EXPUNGER_RUNS} combination of ambiguities). The record most likely has open cases, and thus does not have any charges eligible to be expunged."
-            return [error_message]
+            return [str(AmbiguousRecordTooLarge(ambiguous_record_length))]
         else:
             return []
 
@@ -219,6 +236,14 @@ class RecordCreator:
                 question_summary = QuestionSummary(ambiguous_charge_id, oeci_case.summary.case_number, question)
                 questions.append(question_summary)
         ambiguous_charges += [[charge] for charge in new_charges]
+        # One case with many missing dispositions can exceed the limit on its own; expanding it would exhaust memory.
+        case_combinations = reduce(operator.mul, [len(ambiguous_charge) for ambiguous_charge in ambiguous_charges], 1)
+        if case_combinations > MAX_EXPUNGER_RUNS:
+            missing = sum(1 for charge in oeci_case.charges if charge.disposition.status == DispositionStatus.UNKNOWN)
+            raise AmbiguousRecordTooLarge(
+                case_combinations,
+                f"Case [{oeci_case.summary.case_number}] has {missing} charges with a missing disposition. It may be an open case, or OECI may have omitted the dispositions on a closed case. RecordSponge cannot analyze this record.",
+            )
         ambiguous_case: AmbiguousCase = []
         for charges in product(*ambiguous_charges):
             possible_case = Case(oeci_case.summary, charges=tuple(charges))
