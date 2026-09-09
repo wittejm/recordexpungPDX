@@ -32,19 +32,23 @@ class Expunger:
         ambiguous_charge_id_to_time_eligibility = {}
         cases = analyzable_record.cases
         charges = analyzable_record.charges
+        # Every charge is judged against the other charges on the record, so the
+        # record-wide views are built once and each charge excludes itself from them.
+        active_convictions = [c for c in charges if c.edit_status != EditStatus.DELETE and c.convicted()]
+        blocking_convictions_newest_first = sorted(
+            [c for c in active_convictions if c.charge_type.blocks_other_charges],
+            key=lambda c: c.disposition.date,
+            reverse=True,
+        )
+        non_traffic_convictions = [c for c in active_convictions if not isinstance(c.charge_type, TrafficViolation)]
         for charge in charges:
             eligibility_dates: List[Tuple[date, str]] = []
 
-            other_charges = [c for c in charges if c.id != charge.id and c.edit_status != EditStatus.DELETE]
+            most_recent_blocking_conviction = Expunger._most_recent_convictions(
+                c for c in blocking_convictions_newest_first if c.id != charge.id
+            )
 
-            other_blocking_charges = [c for c in other_charges if c.charge_type.blocks_other_charges]
-
-            convictions = [c for c in other_charges if c.convicted()]
-            blocking_convictions = [c for c in other_blocking_charges if c.convicted()]
-
-            most_recent_blocking_conviction = Expunger._most_recent_convictions(blocking_convictions)
-
-            other_convictions_all_traffic = Expunger._is_other_convictions_all_traffic(convictions)
+            other_convictions_all_traffic = all(c.id == charge.id for c in non_traffic_convictions)
 
             if charge.convicted():
                 charge_level = Expunger._build_charge_level(charge)
@@ -203,20 +207,12 @@ class Expunger:
             )
 
     @staticmethod
-    def _most_recent_convictions(recent_convictions) -> Optional[Charge]:
-        recent_convictions.sort(key=lambda charge: charge.disposition.date, reverse=True)
-        newer, older = take(2, padnone(recent_convictions))
+    def _most_recent_convictions(convictions_newest_first) -> Optional[Charge]:
+        newer, older = take(2, padnone(convictions_newest_first))
         if newer and "violation" in newer.level.lower():
             return older
         else:
             return newer
-
-    @staticmethod
-    def _is_other_convictions_all_traffic(convictions):
-        for charge in convictions:
-            if not isinstance(charge.charge_type, TrafficViolation):
-                return False
-        return True
 
     @staticmethod
     def _without_skippable_charges(record: Record) -> Record:
