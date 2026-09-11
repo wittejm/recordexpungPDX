@@ -177,7 +177,18 @@ export default class PartnerInterest extends React.Component<State> {
                           visually-hidden="true"
                         ></div>
                       </div>{" "}
-                      {/*This div captures bot signups, according to Mailchimp.*/}
+                      {/* Honeypot: Mailchimp discards any submission that fills this field. */}
+                      <div
+                        style={{ position: "absolute", left: "-5000px" }}
+                        aria-hidden="true"
+                      >
+                        <input
+                          type="text"
+                          name="b_8aa8348c6b5b43cde29949c59_17b2f23a63"
+                          tabIndex={-1}
+                          defaultValue=""
+                        />
+                      </div>
                       <div className="clear">
                         <input
                           type="submit"
