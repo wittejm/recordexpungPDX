@@ -16,17 +16,17 @@ jobs:
 
   backend:
     runs-on: ubuntu-latest
-    container:
-      image: recordsponge/expungeservice:dev
-
     steps:
-      # The expungeservice:dev image is built on alpine 3.13, whose musl lacks
-      # pthread_getname_np, so the runner's default Node 24 binary can't load.
-      # Pin checkout's runtime to Node 20 until the base image moves to alpine 3.16+.
       - uses: actions/checkout@v4
-        env:
-          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
-      - name: copy to pipenv project dir
-        run: cp -R src/backend/* /src/backend && ls -l /src/backend
+      # The tests run inside the expungeservice image so they see the pinned Python and
+      # locked dependencies. The checkout happens on the host because the image is alpine
+      # 3.13, whose musl cannot load the Node binary that JavaScript actions need.
+      # src/shared holds fixtures both test suites read.
       - name: run backend tests
-        run: cd /src/backend && pipenv run mypy && pipenv run pytest --cov=expungeservice
+        run: |
+          docker run --rm \
+            -v "$PWD/src/backend:/src/backend" \
+            -v "$PWD/src/shared:/src/shared" \
+            -w /src/backend \
+            recordsponge/expungeservice:dev \
+            sh -c "pipenv run mypy && pipenv run pytest --cov=expungeservice"
