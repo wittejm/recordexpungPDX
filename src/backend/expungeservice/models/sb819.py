@@ -8,7 +8,9 @@ criteria and the result of applying them to a single charge.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
+
+from typing_extensions import Protocol
 
 
 class SB819Status(str, Enum):
@@ -282,8 +284,16 @@ class SB819Analysis:
         return next((a for a in self.charge_analyses if a.ambiguous_charge_id == ambiguous_charge_id), None)
 
 
-# A pathway builder takes (charge, case, record) and returns that pathway's criterion results.
-PathwayBuilder = Callable[..., List[SB819CriterionResult]]
+class PathwayBuilder(Protocol):
+    """Takes (charge, case, record) and returns that pathway's criterion results.
+
+    mypy binds a Callable-typed dataclass field as a method when it is read through an
+    instance, and the call then fails to type-check. A Protocol field is read as a plain
+    attribute.
+    """
+
+    def __call__(self, charge, case, record) -> List[SB819CriterionResult]:
+        ...
 
 
 @dataclass(frozen=True)

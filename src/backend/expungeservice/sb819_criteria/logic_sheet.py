@@ -16,6 +16,7 @@ from expungeservice.models.sb819 import (
     SB819Criterion,
     SB819Determination,
     SB819Pathway,
+    SB819Question,
     SB819Scope,
 )
 
@@ -165,9 +166,9 @@ def all_criteria(module) -> List[SB819Criterion]:
     return [v for k, v in vars(module).items() if k.isupper() and isinstance(v, SB819Criterion)]
 
 
-def collect_questions(analysis) -> Dict[str, object]:
+def collect_questions(analysis) -> Dict[str, SB819Question]:
     """The wording each criterion is put to the client with, taken from a real analysis."""
-    found: Dict[str, object] = {}
+    found: Dict[str, SB819Question] = {}
     for charge in analysis.charge_analyses:
         results = list(charge.main_criterion_results)
         for pathway in charge.pathway_results:
@@ -193,7 +194,7 @@ def _criterion_block(number: str, criterion: SB819Criterion, screened: bool = Tr
     }
 
 
-def build(module, questions_by_key: Dict[str, object]) -> Dict:
+def build(module, questions_by_key: Dict[str, SB819Question]) -> Dict:
     """The county's criteria as a numbered sheet, for a reader auditing the rules."""
     criteria = all_criteria(module)
     numbers: Dict[str, str] = {}

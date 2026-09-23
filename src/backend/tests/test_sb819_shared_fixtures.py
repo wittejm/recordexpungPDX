@@ -11,6 +11,7 @@ scenarios pin.
 
 import json
 from pathlib import Path
+from typing import List
 
 import pytest
 
@@ -63,7 +64,7 @@ def test_outcomes_resolve_as_the_shared_table_says(scenario):
         return
 
     pathway_statuses = []
-    barred = []
+    barred: List[str] = []
     for pathway in scenario["pathways"]:
         results = [build_result(e) for e in pathway["criteria"]]
         status = _resolve_outcomes(tuple(results))
