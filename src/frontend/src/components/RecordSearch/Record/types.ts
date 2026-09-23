@@ -1,3 +1,5 @@
+import { SB819AnalysisData } from "../SB819/types";
+
 export const shortLabels = [
   "Eligible Now",
   "Eligible Future",
@@ -57,6 +59,7 @@ export interface RecordData {
 }
 
 export interface RecordSummaryData {
+  sb819_analysis?: SB819AnalysisData;
   total_charges: number;
   charges_grouped_by_eligibility_and_case: [string, any[]][];
   county_fines: CountyFinesData[];

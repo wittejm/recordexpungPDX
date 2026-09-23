@@ -1,0 +1,26 @@
+
+Synopsis:
+SB819 theoretically permits the DA to expunge basically any criminal record upon a client’s (lengthy) application. In practice, DAs (i) publish their limiting criteria and (ii) demonstrate their tendencies over time. 
+
+When SB819 first came out, it didn’t seem like there was a software angle for several reasons. In particular, comparing just a few years ago to now:
+
+    DAs did not publish policies >> policies now published in most major counties
+    Actual decision entirely at DA discretion so no constructive guidelines >> “two-step approach” described below
+    Lengthy personal statements required >> Claude!
+
+
+Two step approach:
+
+    DAs publish limiting criteria, most of which can be gleaned from the same information as currently available through RecordSponge. For example, some DAs will not consider an SB819 where the applicant has any subsequent conviction. Many will not consider certain case types, like aggravated murder or sex crimes. These rules will differ County by County. 
+    Applicants passing the limiting criteria will also need to collect (i) personal statements (ii) letters of recommendation from community members (iii) disciplinary records
+
+
+RecordSponge Proposed Features 
+The two-part deliverable could look something like this:
+
+    Limiting Criteria analyzer: Build feature for RecordSponge to analyze Ineligible charges for SB819 “eligibility” under the relevant policies (something like the attached). As a standalone tool, this will be immediately useful to determine who isn’t eligible for SB819. Currently, volunteers overpromise on SB819 motions for people who do not qualify under the limiting criteria. 
+    Paperwork guide: Something to handhold clients through the SB819 document gathering process
+
+
+Example of Limiting Criteria publication (Multnomah)
+https://www.mcda.us/wp-content/uploads/2021/11/SB-819-Application-Information-Sheet.pdf

@@ -9,6 +9,7 @@ import OeciLogin from "../OeciLogin";
 import Landing from "../Landing";
 import Manual from "../Manual";
 import Rules from "../Rules";
+import SB819Rules from "../SB819Rules";
 import Faq from "../Faq";
 import Appendix from "../Appendix";
 import PrivacyPolicy from "../PrivacyPolicy";
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/demo-record-search" element={<Demo />} />
           <Route path="/manual" element={<Manual />} />
           <Route path="/rules" element={<Rules />} />
+          <Route path="/sb819-rules" element={<SB819Rules />} />
           <Route path="/faq" element={<Faq />} />
           <Route path="/appendix" element={<Appendix />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />

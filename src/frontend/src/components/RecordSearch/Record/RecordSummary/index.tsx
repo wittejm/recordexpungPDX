@@ -10,6 +10,7 @@ import { buildAndSendDownloadPdfRequest } from "../../../../redux/search/actions
 import ChargesList from "./ChargesList";
 import CountyFines from "./CountyFines";
 import IconButton from "../../../common/IconButton";
+import { RECORD_SUMMARY_PANEL_ID } from "../../SB819/scrollToPanel";
 
 export default function RecordSummary() {
   const navigate = useNavigate();
@@ -38,7 +39,8 @@ export default function RecordSummary() {
     );
     if (
       (chargesEligibleNow[0] && chargesEligibleNow[0][1].length > 0) ||
-      (chargesEligibleOnIneligible[0] && chargesEligibleOnIneligible[0][1].length > 0) ||
+      (chargesEligibleOnIneligible[0] &&
+        chargesEligibleOnIneligible[0][1].length > 0) ||
       fines.total_fines_due > 0
     ) {
       window.scrollTo(0, 0);
@@ -54,7 +56,10 @@ export default function RecordSummary() {
   };
 
   return (
-    <div className="bg-white shadow br3 mb3 ph3 pb3">
+    <div
+      id={RECORD_SUMMARY_PANEL_ID}
+      className="bg-white shadow br3 mb3 ph3 pb3 scroll-mt-20"
+    >
       <div className="flex flex-wrap justify-end mb1">
         <h2 className="f5 fw7 mv3 mr-auto">Search Summary</h2>
 

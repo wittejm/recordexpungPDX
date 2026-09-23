@@ -1,0 +1,29 @@
+Additional backend eligibility analysis is appended to each charge.
+
+As much as possible, new code is in new files, except where data structures, signatures, assignments, etc, need to be added, MINIMALLY.
+
+Frontend feature.
+
+Again, as much as possible, all new frontend code is in new files.
+
+The Summary panel , if there are any Not Eligible charges, then there is a new badge next to the Not Elibigle text that either says "No charges SB-819 eligible" or "Charges possibly SB-819 eligible"
+
+Clicking the badge flips the record view page to the view titled "SB-819 Eligibility Analysis. There's a button at the top of the summary panel to revert to the normal view.
+
+This is an alternate view that shows ONLY THE CHARGES THAT ARE INELIGIBLE, with its own summary panel, in the sections sorted by:
+
+"Possibly SB-819 Eligible"
+
+"Needs more Analysis"
+
+"SB-819 Ineligible"
+
+And the case/charge detail panels are the same, except with an extra section that shows the matching criteria from the guidelines, if any, that make the charge ineligible.
+
+The "needs more analysis" criteria are non-interactive questions. It will say, 
+Is such and such yes/no? 
+If yes: Ineligible 
+If no: Possibly eligible
+
+make a demo record entry per the existing approach of demo records. This demo record should include a normally-eligible charge, and ineliglbe charges that demonstrate the application of all the rules Michael gave in the mvp-convo.
+

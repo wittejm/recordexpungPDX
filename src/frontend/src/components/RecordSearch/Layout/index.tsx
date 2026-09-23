@@ -12,6 +12,9 @@ import Assumptions from "../Assumptions";
 import { convertCaseNumberIntoLinks } from "../Record/util";
 import ViewOptions from "../ExpandedView/ViewOptions";
 import ExpandedView from "../ExpandedView";
+import SB819View from "../SB819";
+import { selectIsViewingSB819 } from "../../../redux/sb819Slice";
+import { sb819IsEnabled } from "../../../service/featureFlags";
 
 function ErrorMessage({ message, idx }: { message: string; idx: number }) {
   const id = "record_error_" + idx;
@@ -55,6 +58,14 @@ export default function Layout({
 }) {
   const record = useAppSelector((state) => state.search.record);
   const stats = useAppSelector(selectStats);
+  // The SB-819 view is a mode of the default view; the expanded view has no badge to open it.
+  // Guarded here as well as on the badge, so the view cannot surface from stale state.
+  // The view stands in for the summary only while the record gives it something to show;
+  // an edit can remove the last analyzed charge from a record the view was opened on.
+  const isViewingSB819 =
+    useAppSelector(selectIsViewingSB819) &&
+    sb819IsEnabled() &&
+    Boolean(record?.summary?.sb819_analysis?.has_analyzed_charges);
   const [showColor, setShowColor] = useState(true);
   const { selectedRadioValue, ...radioGroupProps } = useRadioGroup({
     label: "Summary overview sort options",
@@ -104,7 +115,9 @@ export default function Layout({
 
         <RestitutionBanner />
 
-        {!isExpandedView && (
+        {!isExpandedView && isViewingSB819 && <SB819View />}
+
+        {!isExpandedView && !isViewingSB819 && (
           <>
             <section>
               <RecordSummary />
