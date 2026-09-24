@@ -20,6 +20,7 @@ services:
       - "3000:3000"
     volumes:
       - ./src/frontend:/src/frontend
+      - ./src/shared:/src/shared
       - node_modules:/src/frontend/node_modules
 
 volumes:

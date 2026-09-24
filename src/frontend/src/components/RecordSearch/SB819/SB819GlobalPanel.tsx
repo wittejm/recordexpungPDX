@@ -9,6 +9,7 @@ import SB819SetAside from "./SB819SetAside";
 import SB819Held from "./SB819Held";
 import SB819Question from "./SB819Question";
 import { SB819AnalysisData } from "./types";
+import { SB819_APPLICANT_PANEL_ID } from "./scrollToPanel";
 
 interface Props {
   analysis: SB819AnalysisData;
@@ -43,7 +44,7 @@ export default function SB819GlobalPanel({ analysis }: Props) {
 
   return (
     <div
-      id="sb819-applicant-panel"
+      id={SB819_APPLICANT_PANEL_ID}
       className="bg-white shadow br3 mb3 ph3 pb3 scroll-mt-20"
     >
       <button

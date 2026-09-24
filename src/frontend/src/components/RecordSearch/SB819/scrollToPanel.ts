@@ -2,6 +2,14 @@
 export const RECORD_SUMMARY_PANEL_ID = "record-summary-panel";
 export const SB819_SUMMARY_PANEL_ID = "sb819-summary-panel";
 
+/** The panel that asks the questions about the applicant, once for the record. */
+export const SB819_APPLICANT_PANEL_ID = "sb819-applicant-panel";
+
+/** The panel that asks a case's questions, once for that case. */
+export function sb819CasePanelId(caseNumber: string) {
+  return `sb819-case-questions-${caseNumber}`;
+}
+
 /**
  * Brings a summary panel to the top of the viewport after the view swaps.
  *

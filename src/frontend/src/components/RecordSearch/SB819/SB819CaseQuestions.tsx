@@ -10,6 +10,7 @@ import SB819Question from "./SB819Question";
 import { useAppSelector } from "../../../redux/hooks";
 import { selectSB819Answers } from "../../../redux/sb819AnswersSlice";
 import { SB819AnalysisData } from "./types";
+import { sb819CasePanelId } from "./scrollToPanel";
 
 interface Props {
   analysis: SB819AnalysisData;
@@ -34,7 +35,10 @@ export default function SB819CaseQuestions({ analysis, caseNumber }: Props) {
   if (asked.length === 0 && setAside.length === 0) return null;
 
   return (
-    <div className="bg-white br3 ph3 pv2 mh2 mb2">
+    <div
+      id={sb819CasePanelId(caseNumber)}
+      className="bg-white br3 ph3 pv2 mh2 mb2 scroll-mt-20"
+    >
       <h4 className="fw7 mv2">About this case</h4>
       <p className="f6 mb2">
         Answered once for the case, and applied to every conviction on it.

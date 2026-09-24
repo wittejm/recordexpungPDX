@@ -1,6 +1,6 @@
 import React from "react";
 import "@testing-library/jest-dom";
-import { act, screen } from "@testing-library/react";
+import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { setupStore } from "../../../redux/store";
 import { default as initialSearchState } from "../../../redux/search/initialState";
@@ -555,6 +555,47 @@ describe("questions behind a gate", () => {
     expect(row?.querySelector("input")).not.toBeNull();
   });
 
+  it("links a held row to the panel that asks its gate", async () => {
+    const { user } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+
+    const row = screen
+      .getByText("Applicant has served at least five years")
+      .closest("li");
+    expect(row).toHaveTextContent(/Answer it under About the applicant/);
+
+    const link = within(row!).getByRole("button", {
+      name: "About the applicant",
+    });
+    const panel = document.getElementById("sb819-applicant-panel");
+    expect(panel).toBeInTheDocument();
+    expect(
+      within(panel!).getByText("Is the applicant currently incarcerated?", {
+        selector: "legend",
+      })
+    ).toBeInTheDocument();
+    await user.click(link);
+  });
+
+  it("points a case-scope row at the case's panel", async () => {
+    const { user } = renderWith(buildAnalysis());
+    await openTheAnalysis(user);
+
+    const row = screen
+      .getByText("Applicant has fully completed the sentence")
+      .closest("li");
+    expect(row).toHaveTextContent(/Asked above, under About this case/);
+    expect(row?.querySelector("input")).toBeNull();
+
+    const panel = document.getElementById("sb819-case-questions-100");
+    expect(panel).toBeInTheDocument();
+    expect(
+      within(panel!).getByText(
+        "Has the applicant fully completed the sentence on this case?"
+      )
+    ).toBeInTheDocument();
+  });
+
   it("counts only the questions a charge can be asked now", async () => {
     const { user } = renderWith(buildAnalysis());
     await openTheAnalysis(user);
@@ -613,7 +654,9 @@ describe("questions behind a gate", () => {
     expect(
       screen.queryByRole("heading", { name: /About the applicant/i })
     ).toBeNull();
-    expect(document.getElementById("case:100:sentence-completed-yes")).toBeNull();
+    expect(
+      document.getElementById("case:100:sentence-completed-yes")
+    ).toBeNull();
 
     await answer(user, "charge:100-1:sentenced-as-felony", "yes");
     expect(
@@ -741,7 +784,9 @@ describe("the SB-819 view", () => {
   it("states a question with both of its outcomes", async () => {
     const { user } = renderWith(buildAnalysis());
     await openTheAnalysis(user);
-    await user.click(document.getElementById("case:100:sentence-completed-yes")!);
+    await user.click(
+      document.getElementById("case:100:sentence-completed-yes")!
+    );
     expect(
       screen.getByText("Did this conviction involve domestic violence?")
     ).toBeInTheDocument();

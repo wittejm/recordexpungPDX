@@ -4,7 +4,7 @@ import DisclosureIcon from "../../common/DisclosureIcon";
 import SB819Collapse from "./SB819Collapse";
 import { disqualifyingCriteria, openQuestionCount } from "./resolveAnalysis";
 import { holdingQuestion } from "./questionCollection";
-import { HeldNote } from "./SB819Held";
+import { AskedAboveNote, HeldNote } from "./SB819Held";
 import SB819Question from "./SB819Question";
 import {
   SB819ChargeAnalysisData,
@@ -42,6 +42,7 @@ function Criterion({
   // Shown whether or not it has been answered, so an answer can always be revisited. A
   // question waiting on another is named as waiting rather than asked.
   const askedHere = result.scope === "charge" && result.question;
+  const askedAbove = result.scope !== "charge" && result.question;
   const holder = askedHere ? holdingQuestion(charge, result) : undefined;
 
   return (
@@ -56,9 +57,14 @@ function Criterion({
         <span className="f7 gray ml2 nowrap">{result.citation}</span>
       </div>
       <div className="f6 mt1 ml3 pl1">{result.explanation}</div>
+      {askedAbove && (
+        <div className="ml3 pl1">
+          <AskedAboveNote result={result} caseNumber={charge.case_number} />
+        </div>
+      )}
       {holder && (
         <div className="ml3 pl1">
-          <HeldNote holder={holder} />
+          <HeldNote holder={holder} caseNumber={charge.case_number} />
         </div>
       )}
       {askedHere && !holder && (
